@@ -38,10 +38,8 @@ void setup() {
 void loop() {
   String jsonOutput = "";
   
-  // put your main code here, to run repeatedly:
   int temperature = 0;
   int humidity = 0;
-
   // Value: 22 C Temperature, 35% Humidity.
   int result = dht11.readTemperatureHumidity(temperature, humidity);
 

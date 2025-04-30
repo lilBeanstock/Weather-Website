@@ -5,10 +5,11 @@
  * It is included in `src/index.html`.
  */
 
+import '../index.css';
 import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { App } from './App';
+import { App } from './Index';
 
 const queryClient = new QueryClient();
 const app = (

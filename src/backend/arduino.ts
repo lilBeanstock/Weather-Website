@@ -2,14 +2,14 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
 const command = 'arduino-cli';
-// const args = ['monitor', '-p', 'COM6', '--fqbn', 'arduino:avr:uno']; // Arguments for the command
+// const args = ['monitor', '-p', 'COM6', '--fqbn', 'arduino:avr:uno'];
 const args: string[] = [];
 
 const process = spawn(command, args);
 const rl = createInterface({
 	input: process.stdout,
 	output: process.stdin,
-	terminal: false // Set to false as we're not interacting with a user terminal.
+	terminal: false, // Set to false as we're not interacting with a user terminal.
 });
 
 let collectedStdout = '';
