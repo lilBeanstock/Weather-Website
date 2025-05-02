@@ -10,6 +10,7 @@
         "@radix-ui/react-slot": "^1.1.2",
         "@tanstack/react-query": "^5.74.11",
         "bun-plugin-tailwind": "^0.0.14",
+        "chalk": "^5.4.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^0.503.0",
@@ -135,6 +136,8 @@
     "bun-plugin-tailwind": ["bun-plugin-tailwind@0.0.14", "", { "dependencies": { "tailwindcss": "4.0.0-beta.9" }, "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-Ge8M8DQsRDErCzH/uI8pYjx5vZWXxQvnwM/xMQMElxQqHieGbAopfYo/q/kllkPkRbFHiwhnHwTpRMAMJZCjug=="],
 
     "bun-types": ["bun-types@1.2.11", "", { "dependencies": { "@types/node": "*" } }, "sha512-dbkp5Lo8HDrXkLrONm6bk+yiiYQSntvFUzQp0v3pzTAsXk6FtgVMjdQ+lzFNVAmQFUkPQZ3WMZqH5tTo+Dp/IA=="],
+
+    "chalk": ["chalk@5.4.1", "", {}, "sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w=="],
 
     "class-variance-authority": ["class-variance-authority@0.7.1", "", { "dependencies": { "clsx": "^2.1.1" } }, "sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg=="],
 

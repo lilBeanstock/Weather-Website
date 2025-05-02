@@ -1,7 +1,7 @@
-// import { Button } from './components/ui/button';
-// import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import type { Data } from '@/backend/arduino';
 
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -12,51 +12,42 @@ import {
 } from '@/components/ui/chart';
 
 export function App() {
-	// const { isPending, error, data } = useQuery({
-	// 	queryKey: ['arduino-data'],
-	// 	queryFn: () => fetch('http://localhost:3000/api/arduino-data').then((res) => res.json())
-	// });
+	const { isPending, error, data } = useQuery({
+		queryKey: ['arduino-data'],
+		queryFn: () => fetch('http://localhost:3000/api/arduino-data').then((res) => res.json()) as Promise<Data[]>,
+		refetchInterval: 5 * 1000,
+	});
 
-	// if (isPending) return 'Loading...';
+	if (isPending) return 'Loading...';
 
-	// if (error) return 'An error has occurred: ' + error.message;
-
-	const chartData = [
-		{ month: 'January', desktop: 186, mobile: 80 },
-		{ month: 'February', desktop: 305, mobile: 200 },
-		{ month: 'March', desktop: 237, mobile: 120 },
-		{ month: 'April', desktop: 73, mobile: 190 },
-		{ month: 'May', desktop: 209, mobile: 130 },
-		{ month: 'June', desktop: 214, mobile: 140 },
-	];
+	if (error) return 'An error has occurred: ' + error.message;
 
 	const chartConfig = {
-		desktop: {
-			label: 'Desktop',
+		rain: {
+			label: 'Rain',
 			color: '#2563eb',
 		},
-		mobile: {
-			label: 'Mobile',
+		humidity: {
+			label: 'Humidity',
 			color: '#60a5fa',
 		},
 	} satisfies ChartConfig;
 
 	return (
 		<ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-			<BarChart accessibilityLayer data={chartData}>
+			<AreaChart accessibilityLayer data={data}>
 				<CartesianGrid vertical={false} />
 				<XAxis
-					dataKey="month"
+					dataKey="secondsPassed"
 					tickLine={false}
 					tickMargin={10}
 					axisLine={false}
-					tickFormatter={(value) => value.slice(0, 3)}
+					tickFormatter={(value) => value}
 				/>
 				<ChartTooltip content={<ChartTooltipContent />} />
 				<ChartLegend content={<ChartLegendContent />} />
-				<Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-				<Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
-			</BarChart>
+				<Area dataKey="rain" fill="var(--color-rain)" radius={4} />
+			</AreaChart>
 		</ChartContainer>
 	);
 }

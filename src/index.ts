@@ -1,6 +1,7 @@
 import { serve } from 'bun';
 import index from './index.html';
 import { data } from './backend/arduino';
+import chalk from 'chalk';
 
 const server = serve({
 	routes: {
@@ -13,4 +14,4 @@ const server = serve({
 	development: process.env.NODE_ENV !== 'production',
 });
 
-console.log(`🚀 Server running at ${server.url}`);
+console.log(chalk.green(`🚀 Server running at ${server.url}`));
