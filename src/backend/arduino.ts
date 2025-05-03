@@ -1,4 +1,4 @@
-import { fileURLToPath, spawn, spawnSync } from 'bun';
+import { fileURLToPath, readableStreamToText, spawn, spawnSync } from 'bun';
 import chalk from 'chalk';
 
 // This boolean checks if we should treat the code as if a real Arduino Uno is present.
@@ -8,10 +8,20 @@ const weatherFile = fileURLToPath(import.meta.resolve('./weather/weather.ino'));
 if (RUNNING_ARDUINO) {
 	console.log(chalk.green('Compiling the weather code...'));
 	const compileArguments = ['arduino-cli', 'compile', '--fqbn', 'arduino:avr:uno', weatherFile];
-	const compileProcess = spawnSync(compileArguments, { stdout: 'pipe' });
+	// Spawn a child process which runs the arguments above (which compiles the Arduino code).
+	// stdio array: [stdin, stdout, stderr].
+	const compileProcess = spawnSync(compileArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
-	// Print the raw output of the compilation to terminal.
+	// Print the raw output of the compilation to the terminal.
 	process.stdout.write(compileProcess.stdout.toString());
+	const stderr = compileProcess.stderr.toString();
+	process.stdout.write(stderr);
+
+	// Stop the process/code from running as we have hit an error.
+	if (stderr.length > 0) {
+		console.error('Failed to compile the Arduino weather code!');
+		process.exit(1);
+	}
 }
 
 if (RUNNING_ARDUINO) {
@@ -20,11 +30,11 @@ if (RUNNING_ARDUINO) {
 	const uploadProcess = spawnSync(uploadArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
 	process.stdout.write(uploadProcess.stdout.toString());
-	const uploadStderr = uploadProcess.stderr.toString();
-	process.stdout.write(uploadStderr);
+	const stderr = uploadProcess.stderr.toString();
+	process.stdout.write(stderr);
 
-	if (uploadStderr.search('exit status 1') !== -1) {
-		console.error('Failed to compile the Arduino weather code!');
+	if (stderr.length > 0) {
+		console.error('Failed to upload the Arduino weather code!');
 		process.exit(1);
 	}
 }
@@ -34,13 +44,12 @@ const monitorArguments = RUNNING_ARDUINO
 	: [
 			'powershell.exe',
 			'-Command',
-			'While ($true) { Write-Host "This text will be printed every 2 seconds."; Start-Sleep -Seconds 2 }',
+			'While ($true) { Write-Host "Simulating incoming text from the Arduino Uno every 2 seconds."; Start-Sleep -Seconds 2 }',
 		];
 const monitorProcess = spawn(monitorArguments, {
-	// stdin, stdout, stderr.
 	stdio: ['inherit', 'pipe', 'pipe'],
-	onExit(subprocess, exitCode, signalCode, error) {
-		console.log(`Subprocess exited with exit code ${exitCode}, signal code ${signalCode}, and error ${error}.`);
+	onExit({ pid }, exitCode, signalCode, error) {
+		console.log(`Subprocess #${pid} exited with the code ${exitCode}, signal code ${signalCode}, and error ${error}.`);
 	},
 });
 
@@ -50,7 +59,7 @@ export interface Data {
 	gas: number;
 	rain: number;
 	initialTime: number;
-	secondsPassed: number;
+	logDate: string;
 }
 
 export const data: Data[] = [];
@@ -58,14 +67,16 @@ export const data: Data[] = [];
 // This anonymous async function runs the for await loop in its own async task
 // so that it does not block the rest of the script below it.
 (async () => {
+	// https://stackoverflow.com/a/76296855
 	for await (const chunk of monitorProcess.stdout) {
 		const line = new TextDecoder().decode(chunk);
 		process.stdout.write(line);
 
+		const logDate = new Date().toUTCString();
 		if (RUNNING_ARDUINO) {
 			try {
 				const incomingData = JSON.parse(line) as Data;
-				incomingData.secondsPassed = Math.floor((Date.now() - incomingData.initialTime) / 1000);
+				incomingData.logDate = logDate;
 
 				data.push(incomingData);
 			} catch {
@@ -77,22 +88,25 @@ export const data: Data[] = [];
 			}
 		} else {
 			// Fake data:
+			const initialTime = new Date('2025-05-02 13:20:00').getTime();
 			data.push({
 				gas: Math.floor(Math.random() * 100),
 				humidity: Math.floor(Math.random() * 100),
-				initialTime: new Date('2025-05-02 13:20:00').getTime(),
 				rain: Math.floor(Math.random() * 100),
 				temperature: Math.floor(Math.random() * 100),
-				secondsPassed: (Date.now() - new Date('2025-05-02 13:20:00').getTime()) / 1000,
+				initialTime,
+				logDate,
 			});
 		}
 	}
 })();
 
 (async () => {
-	for await (const chunk of monitorProcess.stderr) {
-		const line = new TextDecoder().decode(chunk);
-		console.error('ERROR!', line);
+	// https://bun.sh/guides/process/spawn-stderr
+	const error = await readableStreamToText(monitorProcess.stderr);
+
+	if (error) {
+		console.error('ERROR!', error);
 		process.exit(1);
 	}
 })();

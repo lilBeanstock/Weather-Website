@@ -10,13 +10,16 @@ import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './Index';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const queryClient = new QueryClient();
 const app = (
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<App />
-		</QueryClientProvider>
+		<ThemeProvider defaultTheme="dark" storageKey="bun-ui-theme">
+			<QueryClientProvider client={queryClient}>
+				<App />
+			</QueryClientProvider>
+		</ThemeProvider>
 	</StrictMode>
 );
 
