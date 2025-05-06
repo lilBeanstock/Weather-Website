@@ -1,5 +1,6 @@
 import { fileURLToPath, readableStreamToText, spawn, spawnSync } from 'bun';
 import chalk from 'chalk';
+import { appendFile } from 'node:fs/promises';
 
 // This boolean checks if we should treat the code as if a real Arduino Uno is present.
 const RUNNING_ARDUINO = process.env.NODE_ENV === 'production';
@@ -79,6 +80,7 @@ export const data: Data[] = [];
 				incomingData.logDate = logDate;
 
 				data.push(incomingData);
+				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `\n${incomingData}`);
 			} catch {
 				console.error('JSON parsing error!');
 			} finally {
@@ -97,6 +99,10 @@ export const data: Data[] = [];
 				initialTime,
 				logDate,
 			});
+		}
+
+		if (data.length > 10) {
+			data.shift();
 		}
 	}
 })();
