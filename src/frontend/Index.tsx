@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Data } from '@/backend/arduino';
-
+import RainIcon from './icons/rain.svg';
+import CloudIcon from './icons/cloudy.svg';
+import WindIcon from './icons/windy.svg';
+import SunIcon from './icons/sunny.svg';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import {
 	type ChartConfig,
@@ -10,6 +13,7 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from '@/components/ui/chart';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 
@@ -25,6 +29,15 @@ export function App() {
 	if (isPending) return 'Loading...';
 
 	if (error) return 'An error has occurred: ' + error.message;
+
+	const tempCurrent = data[data.length - 1].temperature;
+	let tempDistant = 0;
+	if (data.length < 5) {
+		tempDistant = data[0].temperature;
+	} else {
+		tempDistant = data[data.length - 5].temperature;
+	}
+	const tempChange = tempCurrent - tempDistant;
 
 	const chartConfig = {
 		rain: {
@@ -47,6 +60,7 @@ export function App() {
 
 	return (
 		<main className="absolute top-0 left-0 min-h-screen min-w-screen overflow-hidden">
+			{/* header div */}
 			<nav className="top-0 h-13 min-w-screen bg-green-600">
 				<div className="relative text-center">
 					<Button variant="default" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -54,6 +68,24 @@ export function App() {
 					</Button>
 				</div>
 			</nav>
+
+			{/* current information div */}
+			<Card className="w-[60vw] border-[2px] border-solid border-[#202020]">
+				<CardHeader>
+					<CardTitle>Väderprognos</CardTitle>
+					<CardDescription>Card Description</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<img src={RainIcon} height="200" width="200" className="text-sky-600" />
+					<p>Current temperature is {data.at(-1).temperature} °C</p>
+					<p>Temperature has gone down by {tempChange} °C (since INSERT-TIME-CHANGE ago)</p>
+				</CardContent>
+				<CardFooter>
+					<p>Card Footer</p>
+				</CardFooter>
+			</Card>
+
+			{/* graphical div */}
 			<div className="flex w-screen flex-col items-center">
 				<div className="flex h-[250px] w-[30vw] justify-center">
 					{/* for rain and humidity */}
@@ -122,7 +154,6 @@ export function App() {
 						</AreaChart>
 					</ChartContainer>
 				</div>
-
 				<div className="flex h-[250px] w-[30vw] justify-center">
 					{/* for gas and wind velocity */}
 					<ChartContainer config={chartConfig} className="h-[200px] w-[200px]">

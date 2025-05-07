@@ -46,9 +46,9 @@ void loop() {
   jsonOutput += "[{";
 
   jsonOutput += "\"temperature\": ";
-  jsonOutput += result == 0 ? "NaN" : String(temperature);
+  jsonOutput += result == 0 ? String(temperature) : "NaN";
   jsonOutput += ", \"humidity\": ";
-  jsonOutput += result == 0 ? "NaN" : String(humidity);
+  jsonOutput += result == 0 ? String(humidity) : "NaN";
 
   jsonOutput += ", \"gas\": ";
   jsonOutput += readGasSensor();

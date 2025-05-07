@@ -27,7 +27,8 @@ if (RUNNING_ARDUINO) {
 
 if (RUNNING_ARDUINO) {
 	console.log(chalk.green('Uploading the weather code...'));
-	const uploadArguments = ['arduino-cli', 'upload', '-p', '/dev/ttyACM0', '--fqbn', 'arduino:avr:uno', weatherFile];
+	// const uploadArguments = ['arduino-cli', 'upload', '-p', '/dev/ttyACM0', '--fqbn', 'arduino:avr:uno', weatherFile];
+	const uploadArguments = ['arduino-cli', 'upload', '-p', 'COM6', '--fqbn', 'arduino:avr:uno', weatherFile];
 	const uploadProcess = spawnSync(uploadArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
 	process.stdout.write(uploadProcess.stdout.toString());
@@ -65,28 +66,44 @@ export interface Data {
 
 export const data: Data[] = [];
 
+async function* streamLines(stream: AsyncIterable<Uint8Array>) {
+	const decoder = new TextDecoder();
+	let leftover = '';
+
+	for await (const chunk of stream) {
+		leftover += decoder.decode(chunk, { stream: true });
+		const lines = leftover.split('\n');
+		leftover = lines.pop(); // save incomplete line
+
+		for (const line of lines) {
+			yield line;
+		}
+	}
+}
+
 // This anonymous async function runs the for await loop in its own async task
 // so that it does not block the rest of the script below it.
 (async () => {
 	// https://stackoverflow.com/a/76296855
-	for await (const chunk of monitorProcess.stdout) {
-		const line = new TextDecoder().decode(chunk);
+	for await (const line of streamLines(monitorProcess.stdout)) {
 		process.stdout.write(line);
 
 		const logDate = new Date().toUTCString();
 		if (RUNNING_ARDUINO) {
 			try {
-				const incomingData = JSON.parse(line) as Data;
-				incomingData.logDate = logDate;
+				// const incomingData = JSON.parse(line) as Data;
+				// incomingData.logDate = logDate;
+				const rawIncomingData = JSON.parse(line) as Data;
+				const incomingData = {
+					...rawIncomingData,
+					logDate,
+				};
 
 				data.push(incomingData);
-				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `\n${incomingData}`);
+				console.log('server', JSON.stringify(data.at(-1), null, 2));
+				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
 			} catch {
 				console.error('JSON parsing error!');
-			} finally {
-				if (data.length > 10) {
-					data.shift();
-				}
 			}
 		} else {
 			// Fake data:
