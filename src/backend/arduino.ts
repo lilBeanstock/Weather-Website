@@ -73,7 +73,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 	for await (const chunk of stream) {
 		leftover += decoder.decode(chunk, { stream: true });
 		const lines = leftover.split('\n');
-		leftover = lines.pop(); // save incomplete line
+		leftover = lines.pop() ?? ''; // save incomplete line
 
 		for (const line of lines) {
 			yield line;

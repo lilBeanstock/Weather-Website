@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
+import type { PropsWithChildren } from 'react';
 
 export function App() {
 	const { setTheme, theme } = useTheme();
@@ -32,11 +33,13 @@ export function App() {
 
 	const tempCurrent = data[data.length - 1].temperature;
 	let tempDistant = 0;
+
 	if (data.length < 5) {
 		tempDistant = data[0].temperature;
 	} else {
 		tempDistant = data[data.length - 5].temperature;
 	}
+
 	const tempChange = tempCurrent - tempDistant;
 
 	const chartConfig = {
@@ -57,6 +60,31 @@ export function App() {
 			color: 'var(--chart-4)',
 		},
 	} satisfies ChartConfig;
+
+	function ChartInformation({ children }: PropsWithChildren) {
+		return (
+			<ChartContainer config={chartConfig} className="size-64">
+				<AreaChart accessibilityLayer data={data}>
+					<CartesianGrid vertical={false} />
+					<XAxis
+						dataKey="logDate"
+						tickLine={false}
+						axisLine={false}
+						tickMargin={8}
+						tickFormatter={(value) =>
+							new Date(value).toLocaleDateString('en-GB', {
+								month: 'short',
+								day: 'numeric',
+							})
+						}
+					/>
+					<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+					<ChartLegend content={<ChartLegendContent />} />
+					{children}
+				</AreaChart>
+			</ChartContainer>
+		);
+	}
 
 	return (
 		<main className="absolute top-0 left-0 min-h-screen min-w-screen overflow-hidden">
@@ -87,139 +115,71 @@ export function App() {
 
 			{/* graphical div */}
 			<div className="flex w-screen flex-col items-center">
-				<div className="flex h-[250px] w-[30vw] justify-center">
+				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for rain and humidity */}
-					<ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
-						<AreaChart accessibilityLayer data={data}>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="logDate"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								tickFormatter={(value) =>
-									new Date(value).toLocaleDateString('en-GB', {
-										month: 'short',
-										day: 'numeric',
-									})
-								}
-							/>
-							<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-							<ChartLegend content={<ChartLegendContent />} />
-							<Area
-								dataKey="rain"
-								type="linear"
-								fill="var(--color-rain)"
-								fillOpacity={0.4}
-								stroke="var(--color-rain)"
-								stackId="a"
-							/>
-							<Area
-								dataKey="humidity"
-								type="linear"
-								fill="var(--color-humidity)"
-								fillOpacity={0.4}
-								stroke="var(--color-humidity)"
-								stackId="a"
-							/>
-						</AreaChart>
-					</ChartContainer>
+					<ChartInformation>
+						<Area
+							dataKey="rain"
+							type="linear"
+							fill="var(--color-rain)"
+							fillOpacity={0.4}
+							stroke="var(--color-rain)"
+							stackId="a"
+						/>
+						<Area
+							dataKey="humidity"
+							type="linear"
+							fill="var(--color-humidity)"
+							fillOpacity={0.4}
+							stroke="var(--color-humidity)"
+							stackId="a"
+						/>
+					</ChartInformation>
 
 					{/* for temperature */}
-					<ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
-						<AreaChart accessibilityLayer data={data}>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="logDate"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								tickFormatter={(value) =>
-									new Date(value).toLocaleDateString('en-GB', {
-										month: 'short',
-										day: 'numeric',
-									})
-								}
-							/>
-							<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-							<ChartLegend content={<ChartLegendContent />} />
-							<Area
-								dataKey="temperature"
-								type="linear"
-								fill="var(--color-temperature)"
-								fillOpacity={0.4}
-								stroke="var(--color-temperature)"
-								stackId="a"
-							/>
-						</AreaChart>
-					</ChartContainer>
+					<ChartInformation>
+						<Area
+							dataKey="temperature"
+							type="linear"
+							fill="var(--color-temperature)"
+							fillOpacity={0.4}
+							stroke="var(--color-temperature)"
+							stackId="a"
+						/>
+					</ChartInformation>
 				</div>
-				<div className="flex h-[250px] w-[30vw] justify-center">
+				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for gas and wind velocity */}
-					<ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
-						<AreaChart accessibilityLayer data={data}>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="logDate"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								tickFormatter={(value) =>
-									new Date(value).toLocaleDateString('en-GB', {
-										month: 'short',
-										day: 'numeric',
-									})
-								}
-							/>
-							<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-							<ChartLegend content={<ChartLegendContent />} />
-							<Area
-								dataKey="gas"
-								type="linear"
-								fill="var(--color-gas)"
-								fillOpacity={0.4}
-								stroke="var(--color-gas)"
-								stackId="a"
-							/>
-							<Area
-								dataKey="humidity"
-								type="linear"
-								fill="var(--color-humidity)"
-								fillOpacity={0.4}
-								stroke="var(--color-humidity)"
-								stackId="a"
-							/>
-						</AreaChart>
-					</ChartContainer>
+					<ChartInformation>
+						<Area
+							dataKey="gas"
+							type="linear"
+							fill="var(--color-gas)"
+							fillOpacity={0.4}
+							stroke="var(--color-gas)"
+							stackId="a"
+						/>
+						<Area
+							dataKey="humidity"
+							type="linear"
+							fill="var(--color-humidity)"
+							fillOpacity={0.4}
+							stroke="var(--color-humidity)"
+							stackId="a"
+						/>
+					</ChartInformation>
 
 					{/* for solar voltage */}
-					<ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
-						<AreaChart accessibilityLayer data={data}>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="logDate"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								tickFormatter={(value) =>
-									new Date(value).toLocaleDateString('en-GB', {
-										month: 'short',
-										day: 'numeric',
-									})
-								}
-							/>
-							<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-							<ChartLegend content={<ChartLegendContent />} />
-							<Area
-								dataKey="temperature"
-								type="linear"
-								fill="var(--color-temperature)"
-								fillOpacity={0.4}
-								stroke="var(--color-temperature)"
-								stackId="a"
-							/>
-						</AreaChart>
-					</ChartContainer>
+					<ChartInformation>
+						<Area
+							dataKey="temperature"
+							type="linear"
+							fill="var(--color-temperature)"
+							fillOpacity={0.4}
+							stroke="var(--color-temperature)"
+							stackId="a"
+						/>
+					</ChartInformation>
 				</div>
 			</div>
 		</main>
