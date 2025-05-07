@@ -8,6 +8,8 @@ DHT11 dht11(4);
 // Rain sensor without water on it has a value of ~682.
 // With a little bit of water: 336.
 #define rainSensor A1
+// Range: 138-667
+#define solarSensor A2
 
 time_t initialTime;
 
@@ -21,6 +23,7 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(gasSensor, INPUT);
   pinMode(rainSensor, INPUT);
+  pinMode(solarSensor, INPUT);
   Serial.begin(9600);
 
   tmElements_t tm;
@@ -43,7 +46,7 @@ void loop() {
   // Value: 22 C Temperature, 35% Humidity.
   int result = dht11.readTemperatureHumidity(temperature, humidity);
 
-  jsonOutput += "[{";
+  jsonOutput += "{";
 
   jsonOutput += "\"temperature\": ";
   jsonOutput += result == 0 ? String(temperature) : "NaN";
@@ -55,10 +58,13 @@ void loop() {
   jsonOutput += ", \"rain\": ";
   jsonOutput += analogRead(rainSensor);
 
+	jsonOutput += ", \"solar\": ";
+  jsonOutput += analogRead(solarSensor);
+
   jsonOutput += ", \"initialTime\": ";
   jsonOutput += initialTime;
 
-  jsonOutput += "}]";
+  jsonOutput += "}";
 
   Serial.println(jsonOutput);
 

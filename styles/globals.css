@@ -40,6 +40,10 @@
 	--sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
+.svgtowhite {
+	filter: invert(100%) sepia(100%) saturate(0%) hue-rotate(288deg) brightness(102%) contrast(102%);
+}
+
 .dark {
 	--background: hsl(240 10% 3.9%);
 	--foreground: hsl(0 0% 98%);

@@ -4,7 +4,7 @@ import RainIcon from './icons/rain.svg';
 import CloudIcon from './icons/cloudy.svg';
 import WindIcon from './icons/windy.svg';
 import SunIcon from './icons/sunny.svg';
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -31,16 +31,35 @@ export function App() {
 
 	if (error) return 'An error has occurred: ' + error.message;
 
-	const tempCurrent = data[data.length - 1].temperature;
+	// evaluate temperature and changes in temp
+	const tempCurrent = data.at(-1)?.temperature ?? 21;
 	let tempDistant = 0;
 
 	if (data.length < 5) {
-		tempDistant = data[0].temperature;
+		tempDistant = data[0]?.temperature ?? 21;
 	} else {
 		tempDistant = data[data.length - 5].temperature;
 	}
 
 	const tempChange = tempCurrent - tempDistant;
+
+	// evaluate if it's raining
+	let isRaining = false;
+	if (data.length > 0 && data.at(-1).rain > 300) {
+		isRaining = true;
+	}
+
+	// evaluate if it's cloudy
+	// let isCloudy = false;
+	// if (data.length > 0 && !isRaining && data.at(-1).solar > 300) {
+	// 	isCloudy = true;
+	// }
+
+	// evaluate if it's windy (no rain or clouds)
+	// let isWindy = false
+	// if (data.length > 0 && !isRaining && data.at(-1).wind > 400) {
+	// 	isWindy = true
+	// }
 
 	const chartConfig = {
 		rain: {
@@ -59,12 +78,16 @@ export function App() {
 			label: 'Temperature',
 			color: 'var(--chart-4)',
 		},
+		solar: {
+			label: 'Solar Power',
+			color: 'var(--chart-5)',
+		},
 	} satisfies ChartConfig;
 
 	function ChartInformation({ children }: PropsWithChildren) {
 		return (
 			<ChartContainer config={chartConfig} className="size-64">
-				<AreaChart accessibilityLayer data={data}>
+				<LineChart accessibilityLayer data={data}>
 					<CartesianGrid vertical={false} />
 					<XAxis
 						dataKey="logDate"
@@ -78,18 +101,19 @@ export function App() {
 							})
 						}
 					/>
+					<YAxis />
 					<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
 					<ChartLegend content={<ChartLegendContent />} />
 					{children}
-				</AreaChart>
+				</LineChart>
 			</ChartContainer>
 		);
 	}
 
 	return (
-		<main className="absolute top-0 left-0 min-h-screen min-w-screen overflow-hidden">
+		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col items-center overflow-hidden">
 			{/* header div */}
-			<nav className="top-0 h-13 min-w-screen bg-green-600">
+			<nav className="top-0 h-13 min-w-screen border-[2px] border-solid border-[#202020]">
 				<div className="relative text-center">
 					<Button variant="default" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
 						Toggle Theme
@@ -98,15 +122,34 @@ export function App() {
 			</nav>
 
 			{/* current information div */}
-			<Card className="w-[60vw] border-[2px] border-solid border-[#202020]">
+			<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
 				<CardHeader>
-					<CardTitle>Väderprognos</CardTitle>
-					<CardDescription>Card Description</CardDescription>
+					<CardTitle className="text-center">Väderprognos</CardTitle>
+					<CardDescription></CardDescription>
 				</CardHeader>
-				<CardContent>
-					<img src={RainIcon} height="200" width="200" className="text-sky-600" />
-					<p>Current temperature is {data.at(-1).temperature} °C</p>
-					<p>Temperature has gone down by {tempChange} °C (since INSERT-TIME-CHANGE ago)</p>
+				<CardContent className="flex flex-col items-center text-center">
+					<img
+						src={RainIcon}
+						height="200"
+						width="200"
+						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining ? 'block' : 'hidden')}
+					/>
+					{/* <img src={CloudIcon} height="200" width="200" className={'svgtowhite' + isCloudy ? 'block' : 'hidden'} /> */}
+					{/* <img src={WindIcon} height="200" width="200" className={'svgtowhite' + isWindy ? 'block' : 'hidden'} /> */}
+					<img
+						src={SunIcon}
+						height="200"
+						width="200"
+						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining ? 'hidden' : 'block')}
+					/>
+					<p className="m-2">Nuvarande temperatur är {data.at(-1)?.temperature ?? 'Unknown'} °C</p>
+					<p className="m-2">
+						Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />
+						(INSERT-TIME-CHANGE sedan){' '}
+						<span className="text-[#D0D080]">
+							({tempDistant}-{tempCurrent} °C)
+						</span>
+					</p>
 				</CardContent>
 				<CardFooter>
 					<p>Card Footer</p>
@@ -118,66 +161,57 @@ export function App() {
 				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for rain and humidity */}
 					<ChartInformation>
-						<Area
+						<Line
 							dataKey="rain"
-							type="linear"
+							type="monotone"
 							fill="var(--color-rain)"
 							fillOpacity={0.4}
 							stroke="var(--color-rain)"
-							stackId="a"
-						/>
-						<Area
-							dataKey="humidity"
-							type="linear"
-							fill="var(--color-humidity)"
-							fillOpacity={0.4}
-							stroke="var(--color-humidity)"
-							stackId="a"
+							dot={false}
 						/>
 					</ChartInformation>
 
 					{/* for temperature */}
 					<ChartInformation>
-						<Area
+						<Line
 							dataKey="temperature"
-							type="linear"
+							type="monotone"
 							fill="var(--color-temperature)"
 							fillOpacity={0.4}
 							stroke="var(--color-temperature)"
-							stackId="a"
+							dot={false}
 						/>
 					</ChartInformation>
 				</div>
 				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for gas and wind velocity */}
 					<ChartInformation>
-						<Area
+						<Line
 							dataKey="gas"
-							type="linear"
+							type="monotone"
 							fill="var(--color-gas)"
 							fillOpacity={0.4}
 							stroke="var(--color-gas)"
-							stackId="a"
+							dot={false}
 						/>
-						<Area
+						<Line
 							dataKey="humidity"
-							type="linear"
+							type="monotone"
 							fill="var(--color-humidity)"
 							fillOpacity={0.4}
 							stroke="var(--color-humidity)"
-							stackId="a"
+							dot={false}
 						/>
 					</ChartInformation>
-
 					{/* for solar voltage */}
 					<ChartInformation>
-						<Area
-							dataKey="temperature"
-							type="linear"
-							fill="var(--color-temperature)"
+						<Line
+							dataKey="solar"
+							type="monotone"
+							fill="var(--color-solar)"
 							fillOpacity={0.4}
-							stroke="var(--color-temperature)"
-							stackId="a"
+							stroke="var(--color-solar)"
+							dot={false}
 						/>
 					</ChartInformation>
 				</div>

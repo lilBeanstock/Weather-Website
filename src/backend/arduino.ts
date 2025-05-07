@@ -60,6 +60,7 @@ export interface Data {
 	humidity: number;
 	gas: number;
 	rain: number;
+	solar: number;
 	initialTime: number;
 	logDate: string;
 }
@@ -73,11 +74,15 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 	for await (const chunk of stream) {
 		leftover += decoder.decode(chunk, { stream: true });
 		const lines = leftover.split('\n');
-		leftover = lines.pop() ?? ''; // save incomplete line
+		leftover = lines.pop() ?? '';
 
 		for (const line of lines) {
 			yield line;
 		}
+	}
+
+	if (leftover.trim()) {
+		yield leftover;
 	}
 }
 
@@ -86,21 +91,15 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 (async () => {
 	// https://stackoverflow.com/a/76296855
 	for await (const line of streamLines(monitorProcess.stdout)) {
-		process.stdout.write(line);
+		console.log(line);
 
 		const logDate = new Date().toUTCString();
 		if (RUNNING_ARDUINO) {
 			try {
-				// const incomingData = JSON.parse(line) as Data;
-				// incomingData.logDate = logDate;
-				const rawIncomingData = JSON.parse(line) as Data;
-				const incomingData = {
-					...rawIncomingData,
-					logDate,
-				};
+				const incomingData = JSON.parse(line) as Data;
+				incomingData.logDate = logDate;
 
 				data.push(incomingData);
-				console.log('server', JSON.stringify(data.at(-1), null, 2));
 				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
 			} catch {
 				console.error('JSON parsing error!');
@@ -113,12 +112,13 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 				humidity: Math.floor(Math.random() * 100),
 				rain: Math.floor(Math.random() * 100),
 				temperature: Math.floor(Math.random() * 100),
+				solar: Math.floor(Math.random() * 100),
 				initialTime,
 				logDate,
 			});
 		}
 
-		if (data.length > 10) {
+		if (data.length > 30) {
 			data.shift();
 		}
 	}
