@@ -1,4 +1,4 @@
-// Install these libraries below1
+// Install these libraries below.
 #include <DHT11.h>
 #include <TimeLib.h>
 
@@ -7,9 +7,13 @@ DHT11 dht11(4);
 #define gasSensor A0
 // Rain sensor without water on it has a value of ~682.
 // With a little bit of water: 336.
-#define rainSensor A1
-// Range: 138-667
+// Analog pin 1 seems to be a bit inaccurate? Changed to 5.
+#define rainSensor A5
+// Range: 138-667.
 #define solarSensor A2
+// Range: 157-686.
+// Voltage: 0-1.03 V.
+#define windSensor A3
 
 time_t initialTime;
 
@@ -20,12 +24,15 @@ int readGasSensor() {
 }
 
 void setup() {
-  // put your setup code here, to run once:
   pinMode(gasSensor, INPUT);
   pinMode(rainSensor, INPUT);
   pinMode(solarSensor, INPUT);
+  pinMode(windSensor, INPUT);
+
+	// Print to baud rate 9600.
   Serial.begin(9600);
 
+	// Store/Send the time of when the weather staton began operation.
   tmElements_t tm;
 
   tm.Year = CalendarYrToTm(2025);
@@ -49,9 +56,9 @@ void loop() {
   jsonOutput += "{";
 
   jsonOutput += "\"temperature\": ";
-  jsonOutput += result == 0 ? String(temperature) : "NaN";
+  jsonOutput += result == 0 ? String(temperature) : "\"NaN\"";
   jsonOutput += ", \"humidity\": ";
-  jsonOutput += result == 0 ? String(humidity) : "NaN";
+  jsonOutput += result == 0 ? String(humidity) : "\"NaN\"";
 
   jsonOutput += ", \"gas\": ";
   jsonOutput += readGasSensor();
@@ -60,6 +67,9 @@ void loop() {
 
 	jsonOutput += ", \"solar\": ";
   jsonOutput += analogRead(solarSensor);
+
+	jsonOutput += ", \"wind\": ";
+  jsonOutput += analogRead(windSensor);
 
   jsonOutput += ", \"initialTime\": ";
   jsonOutput += initialTime;

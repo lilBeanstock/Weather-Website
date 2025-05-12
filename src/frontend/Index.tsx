@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import type { PropsWithChildren } from 'react';
 
+function forecast(iswind: boolean, israin: boolean, iscloud: boolean, rain: number, wind: number, solar: number) {}
+
 export function App() {
 	const { setTheme, theme } = useTheme();
 	const { isPending, error, data } = useQuery({
@@ -50,16 +52,16 @@ export function App() {
 	}
 
 	// evaluate if it's cloudy
-	// let isCloudy = false;
-	// if (data.length > 0 && !isRaining && data.at(-1).solar > 300) {
-	// 	isCloudy = true;
-	// }
+	let isCloudy = false;
+	if (data.length > 0 && !isRaining && data.at(-1).solar > 300) {
+		isCloudy = true;
+	}
 
 	// evaluate if it's windy (no rain or clouds)
-	// let isWindy = false
-	// if (data.length > 0 && !isRaining && data.at(-1).wind > 400) {
-	// 	isWindy = true
-	// }
+	let isWindy = false;
+	if (data.length > 0 && !isRaining && data.at(-1).wind > 400) {
+		isWindy = true;
+	}
 
 	const chartConfig = {
 		rain: {
@@ -83,6 +85,8 @@ export function App() {
 			color: 'var(--chart-5)',
 		},
 	} satisfies ChartConfig;
+
+	console.log('wind: ' + isWindy + ' rain: ' + isRaining + ' cloud: ' + isCloudy);
 
 	function ChartInformation({ children }: PropsWithChildren) {
 		return (
@@ -134,8 +138,18 @@ export function App() {
 						width="200"
 						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining ? 'block' : 'hidden')}
 					/>
-					{/* <img src={CloudIcon} height="200" width="200" className={'svgtowhite' + isCloudy ? 'block' : 'hidden'} /> */}
-					{/* <img src={WindIcon} height="200" width="200" className={'svgtowhite' + isWindy ? 'block' : 'hidden'} /> */}
+					<img
+						src={CloudIcon}
+						height="200"
+						width="200"
+						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isCloudy ? 'block' : 'hidden')}
+					/>
+					<img
+						src={WindIcon}
+						height="200"
+						width="200"
+						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isWindy ? 'block' : 'hidden')}
+					/>
 					<img
 						src={SunIcon}
 						height="200"
@@ -203,7 +217,7 @@ export function App() {
 							dot={false}
 						/>
 					</ChartInformation>
-					{/* for solar voltage */}
+					{/* for solar voltage, 600 = 2V, 632 = 2.42V 200 = 0.19V */}
 					<ChartInformation>
 						<Line
 							dataKey="solar"

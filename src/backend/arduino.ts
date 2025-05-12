@@ -55,12 +55,28 @@ const monitorProcess = spawn(monitorArguments, {
 	},
 });
 
+function quadraticRegression(x: number): number {
+	// Coefficients calculated from least squares regression, for solar panel
+	const a = 4.36e-6;
+	const b = 0.00196;
+	const c = -0.058;
+
+	// Calculate y value
+	let y = a * Math.pow(x, 2) + b * x + c;
+
+	// Apply constraints
+	y = Math.max(0, Math.min(y, 4.5));
+
+	return Number(y.toFixed(2)); // Round to 2 decimal places for cleaner output
+}
+
 export interface Data {
 	temperature: number;
 	humidity: number;
 	gas: number;
 	rain: number;
 	solar: number;
+	wind: number;
 	initialTime: number;
 	logDate: string;
 }
@@ -91,13 +107,13 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 (async () => {
 	// https://stackoverflow.com/a/76296855
 	for await (const line of streamLines(monitorProcess.stdout)) {
-		console.log(line);
-
 		const logDate = new Date().toUTCString();
 		if (RUNNING_ARDUINO) {
 			try {
-				const incomingData = JSON.parse(line) as Data;
+				let incomingData = JSON.parse(line) as Data;
 				incomingData.logDate = logDate;
+				incomingData.solar = quadraticRegression(incomingData.solar); // value to voltage
+				incomingData.temperature -= 4; // value to voltage
 
 				data.push(incomingData);
 				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
@@ -113,6 +129,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 				rain: Math.floor(Math.random() * 100),
 				temperature: Math.floor(Math.random() * 100),
 				solar: Math.floor(Math.random() * 100),
+				wind: Math.floor(Math.random() * 100),
 				initialTime,
 				logDate,
 			});
@@ -121,6 +138,8 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 		if (data.length > 30) {
 			data.shift();
 		}
+
+		console.log(JSON.stringify(data.at(-1)));
 	}
 })();
 
