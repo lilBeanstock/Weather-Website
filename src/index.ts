@@ -14,7 +14,8 @@ const server = serve({
 			const text = await file(fileURLToPath(import.meta.resolve('./backend/data.txt'))).text();
 			const splitted = text.split('\n');
 			splitted.pop();
-			return Response.json(JSON.parse('[' + splitted.join(',') + ']'));
+
+			return Response.json(JSON.parse(`[${splitted.join(',')}]`));
 		},
 	},
 	development: process.env.NODE_ENV !== 'production',

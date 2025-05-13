@@ -4,6 +4,7 @@ import RainIcon from './icons/rain.svg';
 import CloudIcon from './icons/cloudy.svg';
 import WindIcon from './icons/windy.svg';
 import SunIcon from './icons/sunny.svg';
+import { Download } from 'lucide-react';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
 	type ChartConfig,
@@ -13,12 +14,10 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from '@/components/ui/chart';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import type { PropsWithChildren } from 'react';
-
-function forecast(iswind: boolean, israin: boolean, iscloud: boolean, rain: number, wind: number, solar: number) {}
 
 export function App() {
 	const { setTheme, theme } = useTheme();
@@ -125,13 +124,13 @@ export function App() {
 		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col items-center overflow-hidden">
 			{/* header div */}
 			<nav className="top-0 h-13 min-w-screen border-[2px] border-solid border-[#202020]">
-				<div className="relative text-center">
+				<div className="align-center flex h-full flex-row items-center justify-center gap-x-4">
 					<Button variant="default" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
 						Toggle Theme
 					</Button>
-					<Button variant="default" asChild>
+					<Button variant="secondary" asChild>
 						<a href="/api/arduino-data-all" download>
-							Download
+							<Download /> Download Data
 						</a>
 					</Button>
 				</div>
