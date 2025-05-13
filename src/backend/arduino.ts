@@ -1,3 +1,9 @@
+/**
+ * arduino-cli is required to be able to run the server code.
+ * Make sure the port (-p option) and FQBN (--fqbn option) matches your
+ * board listed in "arduino-cli board list".
+ */
+
 import { fileURLToPath, readableStreamToText, spawn, spawnSync } from 'bun';
 import chalk from 'chalk';
 import { appendFile } from 'node:fs/promises';

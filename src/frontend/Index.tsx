@@ -63,34 +63,41 @@ export function App() {
 		isWindy = true;
 	}
 
+	const before = new Date(data.at(-2)?.logDate).getTime();
+	const after = new Date(data.at(-1)?.logDate).getTime();
+	const timeChange = (after - before) / 1000;
+	const timeUnit = 'sekund(er)';
+
 	const chartConfig = {
 		rain: {
-			label: 'Rain',
+			label: 'Rain [%]',
 			color: 'var(--chart-1)',
 		},
 		humidity: {
-			label: 'Humidity',
+			label: 'Humidity [%]',
 			color: 'var(--chart-2)',
 		},
 		gas: {
-			label: 'Harmful Gases',
+			label: 'Hazardous Gases [%]',
 			color: 'var(--chart-3)',
 		},
 		temperature: {
-			label: 'Temperature',
+			label: 'Temperature [°C]',
 			color: 'var(--chart-4)',
 		},
 		solar: {
-			label: 'Solar Power',
+			label: 'Solar Power [V]',
 			color: 'var(--chart-5)',
+		},
+		wind: {
+			label: 'Wind [m/s]',
+			color: 'var(--chart-2)',
 		},
 	} satisfies ChartConfig;
 
-	console.log('wind: ' + isWindy + ' rain: ' + isRaining + ' cloud: ' + isCloudy);
-
 	function ChartInformation({ children }: PropsWithChildren) {
 		return (
-			<ChartContainer config={chartConfig} className="size-64">
+			<ChartContainer config={chartConfig} className="h-64 w-64 lg:w-96">
 				<LineChart accessibilityLayer data={data}>
 					<CartesianGrid vertical={false} />
 					<XAxis
@@ -122,13 +129,18 @@ export function App() {
 					<Button variant="default" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
 						Toggle Theme
 					</Button>
+					<Button variant="default" asChild>
+						<a href="/api/arduino-data-all" download>
+							Download
+						</a>
+					</Button>
 				</div>
 			</nav>
 
 			{/* current information div */}
 			<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
 				<CardHeader>
-					<CardTitle className="text-center">Väderprognos</CardTitle>
+					<CardTitle className="text-center text-xl">Väderprognos</CardTitle>
 					<CardDescription></CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col items-center text-center">
@@ -154,26 +166,25 @@ export function App() {
 						src={SunIcon}
 						height="200"
 						width="200"
-						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining ? 'hidden' : 'block')}
+						className={
+							(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining || isWindy || isCloudy ? 'hidden' : 'block')
+						}
 					/>
 					<p className="m-2">Nuvarande temperatur är {data.at(-1)?.temperature ?? 'Unknown'} °C</p>
 					<p className="m-2">
-						Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />
-						(INSERT-TIME-CHANGE sedan){' '}
+						Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />(
+						{timeChange + ' ' + timeUnit} sedan){' '}
 						<span className="text-[#D0D080]">
 							({tempDistant}-{tempCurrent} °C)
 						</span>
 					</p>
 				</CardContent>
-				<CardFooter>
-					<p>Card Footer</p>
-				</CardFooter>
 			</Card>
 
 			{/* graphical div */}
 			<div className="flex w-screen flex-col items-center">
 				<div className="flex h-72 w-2/3 place-content-between">
-					{/* for rain and humidity */}
+					{/* for rain */}
 					<ChartInformation>
 						<Line
 							dataKey="rain"
@@ -198,7 +209,7 @@ export function App() {
 					</ChartInformation>
 				</div>
 				<div className="flex h-72 w-2/3 place-content-between">
-					{/* for gas and wind velocity */}
+					{/* for gas and humidity */}
 					<ChartInformation>
 						<Line
 							dataKey="gas"
@@ -217,7 +228,7 @@ export function App() {
 							dot={false}
 						/>
 					</ChartInformation>
-					{/* for solar voltage, 600 = 2V, 632 = 2.42V 200 = 0.19V */}
+					{/* for solar voltage and wind velocity, 600 = 2V, 632 = 2.42V 200 = 0.19V */}
 					<ChartInformation>
 						<Line
 							dataKey="solar"
@@ -225,6 +236,14 @@ export function App() {
 							fill="var(--color-solar)"
 							fillOpacity={0.4}
 							stroke="var(--color-solar)"
+							dot={false}
+						/>
+						<Line
+							dataKey="wind"
+							type="monotone"
+							fill="var(--color-wind)"
+							fillOpacity={0.4}
+							stroke="var(--color-wind)"
 							dot={false}
 						/>
 					</ChartInformation>

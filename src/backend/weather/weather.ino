@@ -1,4 +1,4 @@
-// Install these libraries below.
+// Install these libraries below. Might have to be done in the Arduino IDE.
 #include <DHT11.h>
 #include <TimeLib.h>
 
@@ -17,10 +17,13 @@ DHT11 dht11(4);
 
 time_t initialTime;
 
-int readGasSensor() {
-  unsigned int sensorValue = analogRead(gasSensor);
-  unsigned int outputValue = map(sensorValue, 0, 1023, 0, 100);
-  return outputValue;
+double readWindSensor() {
+	int raw = analogRead(windSensor);
+	double slope = (4.47 - 0) / (420 - 150);
+	double yIntercept = -2.48333333333333333;
+	
+	if (raw < 150) return 0;
+	return slope * raw + yIntercept;
 }
 
 void setup() {
@@ -61,15 +64,16 @@ void loop() {
   jsonOutput += result == 0 ? String(humidity) : "\"NaN\"";
 
   jsonOutput += ", \"gas\": ";
-  jsonOutput += readGasSensor();
+  jsonOutput += map(analogRead(gasSensor), 0, 1023, 0, 100);
+
   jsonOutput += ", \"rain\": ";
-  jsonOutput += analogRead(rainSensor);
+  jsonOutput += map(analogRead(rainSensor), 0, 1023, 100, 0);
 
 	jsonOutput += ", \"solar\": ";
   jsonOutput += analogRead(solarSensor);
 
 	jsonOutput += ", \"wind\": ";
-  jsonOutput += analogRead(windSensor);
+	jsonOutput += readWindSensor();
 
   jsonOutput += ", \"initialTime\": ";
   jsonOutput += initialTime;
@@ -78,5 +82,5 @@ void loop() {
 
   Serial.println(jsonOutput);
 
-  delay(1 * 1000);
+  delay(5 * 1000);
 }
