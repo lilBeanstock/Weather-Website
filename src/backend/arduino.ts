@@ -61,21 +61,6 @@ const monitorProcess = spawn(monitorArguments, {
 	},
 });
 
-function quadraticRegression(x: number): number {
-	// Coefficients calculated from least squares regression, for solar panel
-	const a = 4.36e-6;
-	const b = 0.00196;
-	const c = -0.058;
-
-	// Calculate y value
-	let y = a * Math.pow(x, 2) + b * x + c;
-
-	// Apply constraints
-	y = Math.max(0, Math.min(y, 4.5));
-
-	return Number(y.toFixed(2)); // Round to 2 decimal places for cleaner output
-}
-
 export interface Data {
 	temperature: number;
 	humidity: number;
@@ -118,8 +103,6 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 			try {
 				let incomingData = JSON.parse(line) as Data;
 				incomingData.logDate = logDate;
-				incomingData.solar = quadraticRegression(incomingData.solar); // value to voltage
-				incomingData.temperature -= 4; // value to voltage
 
 				data.push(incomingData);
 				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
