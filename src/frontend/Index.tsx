@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import type { PropsWithChildren } from 'react';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 type ForecastedDataObj = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
 interface ForecastedData extends ForecastedDataObj {}
@@ -32,30 +32,34 @@ function forecastWeather(secondsIncrement: number, currData: Data[]): Forecasted
 	}
 
 	// distant change
-	const DisRain = currData.at(-1).rain - currData.at(index).rain;
-	const DisSol = currData.at(-1).solar - currData.at(index).solar;
-	const DisWind = currData.at(-1).wind - currData.at(index).wind;
-	const DisTemp = currData.at(-1).temperature - currData.at(index).temperature;
-	const DisHumidity = currData.at(-1).humidity - currData.at(index).humidity;
+	const DisTimeChange = new Date(currData.at(-1).logDate).getTime() - new Date(currData.at(index).logDate).getTime();
+	const DisRain = ((currData.at(-1).rain - currData.at(index).rain) / DisTimeChange) * 1000;
+	const DisSol = ((currData.at(-1).solar - currData.at(index).solar) / DisTimeChange) * 1000;
+	const DisWind = ((currData.at(-1).wind - currData.at(index).wind) / DisTimeChange) * 1000 * 5;
+	const DisTemp = ((currData.at(-1).temperature - currData.at(index).temperature) / DisTimeChange) * 1000;
+	const DisHumidity = ((currData.at(-1).humidity - currData.at(index).humidity) / DisTimeChange) * 1000;
 
 	// momentary change
-	const ChRain = currData.at(-1).rain - currData.at(-3).rain;
-	const ChSol = currData.at(-1).solar - currData.at(-3).solar;
-	const ChWind = currData.at(-1).wind - currData.at(-3).wind;
-	const ChTemp = currData.at(-1).temperature - currData.at(-3).temperature;
-	const ChHumidity = currData.at(-1).humidity - currData.at(-3).humidity;
+	const ChTimeChange = new Date(currData.at(-1).logDate).getTime() - new Date(currData.at(-3).logDate).getTime();
+	const ChRain = ((currData.at(-1).rain - currData.at(-3).rain) / ChTimeChange) * 1000;
+	const ChSol = ((currData.at(-1).solar - currData.at(-3).solar) / ChTimeChange) * 1000;
+	const ChWind = ((currData.at(-1).wind - currData.at(-3).wind) / ChTimeChange) * 1000;
+	const ChTemp = ((currData.at(-1).temperature - currData.at(-3).temperature) / ChTimeChange) * 1000;
+	const ChHumidity = ((currData.at(-1).humidity - currData.at(-3).humidity) / ChTimeChange) * 1000;
 
 	// average the change for a more accurate prediction
-	const AvgRain = (ChRain + DisRain) / 2;
-	const AvgSol = (ChSol + DisSol) / 2;
-	const AvgWind = (ChWind + DisWind) / 2;
-	const AvgTemp = (ChTemp + DisTemp) / 2;
-	const AvgHumidity = (ChHumidity + DisHumidity) / 2;
+	const AvgRain = Math.round(ChRain + DisRain) / 2;
+	const AvgSol = Math.round(ChSol + DisSol) / 2;
+	const AvgWind = Math.round(ChWind + DisWind) / 2;
+	const AvgTemp = Math.round(ChTemp + DisTemp) / 2;
+	const AvgHumidity = Math.round(ChHumidity + DisHumidity) / 2;
+
+	console.log(AvgWind, ChWind, DisWind, ChTimeChange, DisTimeChange);
 
 	// predict for the forecoming minutes
 	let forecasted: ForecastedDataObj[] = [];
 	// new Date(new Date().getTime() + secondsIncrement*1000);
-	for (let i = 1; i < 4; i++) {
+	for (let i = 1; i < 6; i++) {
 		// current + AvgChange * index
 		forecasted.push({
 			logDate: new Date(new Date().getTime() + secondsIncrement * 1000 * i).toUTCString(),
@@ -74,7 +78,7 @@ export function App() {
 	const { setTheme, theme } = useTheme();
 	const { isPending, error, data } = useQuery({
 		queryKey: ['arduino-data'],
-		queryFn: () => fetch('http://localhost:3000/api/arduino-data').then((res) => res.json()) as Promise<Data[]>,
+		queryFn: () => fetch(`${window.location.origin}/api/arduino-data`).then((res) => res.json()) as Promise<Data[]>,
 		// Retrieve the Arduino data every 5 seconds.
 		refetchInterval: 5 * 1000,
 	});
@@ -95,22 +99,16 @@ export function App() {
 
 	const tempChange = tempCurrent - tempDistant;
 
-	// evaluate if it's raining
-	let isRaining = false;
-	if (data.length > 0 && data.at(-1).rain > 300) {
-		isRaining = true;
+	function raining(rain: Data['rain']) {
+		return data.length > 0 && rain > 30;
 	}
 
-	// evaluate if it's cloudy
-	let isCloudy = false;
-	if (data.length > 0 && !isRaining && data.at(-1).solar > 300) {
-		isCloudy = true;
+	function cloudy({ rain, solar }: Pick<Data, 'rain' | 'solar'>) {
+		return data.length > 0 && !raining(rain) && solar > 300;
 	}
 
-	// evaluate if it's windy (no rain or clouds)
-	let isWindy = false;
-	if (data.length > 0 && !isRaining && data.at(-1).wind > 400) {
-		isWindy = true;
+	function windy({ rain, wind }: Pick<Data, 'rain' | 'wind'>) {
+		return data.length > 0 && !raining(rain) && wind > 400;
 	}
 
 	const forecastedData = forecastWeather(60, data);
@@ -151,19 +149,30 @@ export function App() {
 		);
 	}
 
-	function Forecast({ data }: { data: ForecastedDataObj }) {
+	function Forecast({
+		data: { humidity, rain, solar, wind, temperature },
+		date,
+	}: {
+		data: ForecastedDataObj;
+		date: Data['logDate'];
+	}) {
+		const dateObj = new Date(date);
+		const diff = Math.round((dateObj.getTime() - new Date().getTime()) / (1000 * 60));
+		const formattedDate = new Intl.RelativeTimeFormat('sv-SE', { numeric: 'auto' }).format(diff, 'minute');
+
 		return (
-			<CarouselItem className="basis-1/3">
-				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
+			<CarouselItem className="md:basis-1/2 lg:basis-1/3">
+				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020] p-1">
 					<CardHeader>
-						<CardTitle className="text-center text-xl">DAG ?</CardTitle>
+						<CardTitle className="text-center text-xl">{formattedDate}</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-col items-center text-center">
-						<WeatherIcon cloudy={isCloudy} raining={isRaining} windy={isWindy} />
-						<p className="m-2">Temperatur: {data.temperature ?? 'NaN'} °C</p>
-						<p className="m-2">Luftfuktighet: {data.humidity ?? 'NaN'}%</p>
-						<p className="m-2">Regn: {data.rain ?? 'NaN'}%</p>
-						<p className="m-2">Vind: {data.wind ?? 'NaN'} m/s</p>
+						<WeatherIcon cloudy={cloudy({ rain, solar })} raining={raining(rain)} windy={windy({ rain, wind })} />
+						<p className="mx-2">Temperatur:</p>
+						<p className="mx-2">{temperature.toFixed(1) ?? 'NaN'} °C</p>
+						<p className="m-2">Luftfuktighet: {humidity.toFixed(1) ?? 'NaN'}%</p>
+						<p className="m-2">Regn: {rain.toFixed(1) ?? 'NaN'}%</p>
+						<p className="m-2">Vind: {wind.toFixed(1) ?? 'NaN'} m/s</p>
 					</CardContent>
 				</Card>
 			</CarouselItem>
@@ -239,7 +248,7 @@ export function App() {
 				</div>
 			</nav>
 
-			<div className="flex flex-row justify-around">
+			<div className="my-8 flex flex-row justify-evenly">
 				{/* current weather div */}
 				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
 					<CardHeader>
@@ -249,7 +258,11 @@ export function App() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex flex-col items-center text-center">
-						<WeatherIcon cloudy={isCloudy} raining={isRaining} windy={isWindy} />
+						<WeatherIcon
+							cloudy={cloudy({ rain: data.at(-1).rain, solar: data.at(-1).solar })}
+							raining={raining(data.at(-1).rain)}
+							windy={windy({ rain: data.at(-1).rain, wind: data.at(-1).wind })}
+						/>
 						<p className="m-2">Nuvarande temperatur är {data.at(-1)?.temperature ?? 'Unknown'} °C</p>
 						<p className="m-2">
 							Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />(
@@ -260,11 +273,15 @@ export function App() {
 						</p>
 					</CardContent>
 				</Card>
-				<Carousel>
+				{/* weather forecast */}
+				<Carousel opts={{ align: 'start' }} className="w-full max-w-2xl">
 					<CarouselContent>
-						{...Array(5).map((i) => <Forecast data={forecastedData.at(i)} />)}
-						<Card>HII</Card>
+						{[...(forecastedData.length > 0 ? forecastedData : []).slice(0, 5)].map((data, index) => (
+							<Forecast key={index} data={data} date={data.logDate} />
+						))}
 					</CarouselContent>
+					<CarouselPrevious />
+					<CarouselNext />
 				</Carousel>
 			</div>
 
