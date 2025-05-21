@@ -3,16 +3,12 @@
 #include <TimeLib.h>
 
 DHT11 dht11(4);
-// Value: 20.
 #define gasSensor A0
 // Rain sensor without water on it has a value of ~682.
 // With a little bit of water: 336.
 // Analog pin 1 seems to be a bit inaccurate? Changed to 5.
 #define rainSensor A5
-// Range: 138-667.
 #define solarSensor A2
-// Range: 157-686.
-// Voltage: 0-1.03 V.
 #define windSensor A3
 #define buzzer 3
 
@@ -69,7 +65,6 @@ void loop() {
   
   int temperature = 0;
   int humidity = 0;
-  // Value: 22 C Temperature, 35% Humidity.
   int result = dht11.readTemperatureHumidity(temperature, humidity);
 	// The temperature is higher than it should be.
 	temperature -= 4;
@@ -100,14 +95,19 @@ void loop() {
   jsonOutput += ", \"initialTime\": ";
   jsonOutput += initialTime;
 
+	// No solar value check because the solar panel is too sensitive to sunlight (maxes out).
+	bool shouldBuzz = (temperature >= 30) || (humidity >= 40) || (gas >= 75) || (rain >= 25) || (wind >= 4);
+	shouldBuzz ? tone(buzzer, 1000) : noTone(buzzer);
+	// Temporary LED.
+	// digitalWrite(buzzer, shouldBuzz);
+
+	jsonOutput += ", \"alarming\": ";
+	jsonOutput += String(shouldBuzz);
+
   jsonOutput += "}";
 
   Serial.println(jsonOutput);
 
-	bool shouldBuzz = (temperature >= 30) || (humidity >= 40) || (gas >= 75) || (rain >= 25) || (solar >= 5) || (wind >= 4);
-	// shouldBuzz ? tone(buzzer, 1000) : noTone(buzzer);
-	// Temporary LED.
-	digitalWrite(buzzer, shouldBuzz);
 	
   delay(5 * 1000);
 }

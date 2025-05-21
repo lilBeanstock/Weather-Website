@@ -18,6 +18,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import type { PropsWithChildren } from 'react';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+
+type ForecastedDataObj = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
+interface ForecastedData extends ForecastedDataObj {}
+
+function forecastWeather(secondsIncrement: number, currData: Data[]): ForecastedData[] | null {
+	let index = -currData.length;
+	if (index >= -3) {
+		return null;
+	} else if (index <= -15) {
+		index = -15;
+	}
+
+	// distant change
+	const DisRain = currData.at(-1).rain - currData.at(index).rain;
+	const DisSol = currData.at(-1).solar - currData.at(index).solar;
+	const DisWind = currData.at(-1).wind - currData.at(index).wind;
+	const DisTemp = currData.at(-1).temperature - currData.at(index).temperature;
+	const DisHumidity = currData.at(-1).humidity - currData.at(index).humidity;
+
+	// momentary change
+	const ChRain = currData.at(-1).rain - currData.at(-3).rain;
+	const ChSol = currData.at(-1).solar - currData.at(-3).solar;
+	const ChWind = currData.at(-1).wind - currData.at(-3).wind;
+	const ChTemp = currData.at(-1).temperature - currData.at(-3).temperature;
+	const ChHumidity = currData.at(-1).humidity - currData.at(-3).humidity;
+
+	// average the change for a more accurate prediction
+	const AvgRain = (ChRain + DisRain) / 2;
+	const AvgSol = (ChSol + DisSol) / 2;
+	const AvgWind = (ChWind + DisWind) / 2;
+	const AvgTemp = (ChTemp + DisTemp) / 2;
+	const AvgHumidity = (ChHumidity + DisHumidity) / 2;
+
+	// predict for the forecoming minutes
+	let forecasted: ForecastedDataObj[] = [];
+	// new Date(new Date().getTime() + secondsIncrement*1000);
+	for (let i = 1; i < 4; i++) {
+		// current + AvgChange * index
+		forecasted.push({
+			logDate: new Date(new Date().getTime() + secondsIncrement * 1000 * i).toUTCString(),
+			rain: currData.at(-1).rain + AvgRain * i,
+			solar: currData.at(-1).solar + AvgSol * i,
+			temperature: currData.at(-1).temperature + AvgTemp * i,
+			wind: currData.at(-1).wind + AvgWind * i,
+			humidity: currData.at(-1).humidity + AvgHumidity * i,
+		});
+	}
+
+	return forecasted;
+}
 
 export function App() {
 	const { setTheme, theme } = useTheme();
@@ -39,7 +90,7 @@ export function App() {
 	if (data.length < 5) {
 		tempDistant = data[0]?.temperature ?? 21;
 	} else {
-		tempDistant = data[data.length - 5].temperature;
+		tempDistant = data.at(-5).temperature;
 	}
 
 	const tempChange = tempCurrent - tempDistant;
@@ -62,10 +113,62 @@ export function App() {
 		isWindy = true;
 	}
 
+	const forecastedData = forecastWeather(60, data);
+
 	const before = new Date(data.at(-2)?.logDate).getTime();
 	const after = new Date(data.at(-1)?.logDate).getTime();
 	const timeChange = (after - before) / 1000;
 	const timeUnit = 'sekund(er)';
+
+	function WeatherIcon({ cloudy, raining, windy }: { cloudy: boolean; raining: boolean; windy: boolean }) {
+		return (
+			<>
+				<img
+					src={RainIcon}
+					height="200"
+					width="200"
+					className={(theme === 'dark' ? 'svgtowhite ' : '') + (raining ? 'block' : 'hidden')}
+				/>
+				<img
+					src={CloudIcon}
+					height="200"
+					width="200"
+					className={(theme === 'dark' ? 'svgtowhite ' : '') + (cloudy ? 'block' : 'hidden')}
+				/>
+				<img
+					src={WindIcon}
+					height="200"
+					width="200"
+					className={(theme === 'dark' ? 'svgtowhite ' : '') + (windy ? 'block' : 'hidden')}
+				/>
+				<img
+					src={SunIcon}
+					height="200"
+					width="200"
+					className={(theme === 'dark' ? 'svgtowhite ' : '') + (raining || windy || cloudy ? 'hidden' : 'block')}
+				/>
+			</>
+		);
+	}
+
+	function Forecast({ data }: { data: ForecastedDataObj }) {
+		return (
+			<CarouselItem className="basis-1/3">
+				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
+					<CardHeader>
+						<CardTitle className="text-center text-xl">DAG ?</CardTitle>
+					</CardHeader>
+					<CardContent className="flex flex-col items-center text-center">
+						<WeatherIcon cloudy={isCloudy} raining={isRaining} windy={isWindy} />
+						<p className="m-2">Temperatur: {data.temperature ?? 'NaN'} °C</p>
+						<p className="m-2">Luftfuktighet: {data.humidity ?? 'NaN'}%</p>
+						<p className="m-2">Regn: {data.rain ?? 'NaN'}%</p>
+						<p className="m-2">Vind: {data.wind ?? 'NaN'} m/s</p>
+					</CardContent>
+				</Card>
+			</CarouselItem>
+		);
+	}
 
 	const chartConfig = {
 		rain: {
@@ -121,7 +224,7 @@ export function App() {
 	}
 
 	return (
-		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col items-center overflow-hidden">
+		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col overflow-hidden">
 			{/* header div */}
 			<nav className="top-0 h-13 min-w-screen border-[2px] border-solid border-[#202020]">
 				<div className="align-center flex h-full flex-row items-center justify-center gap-x-4">
@@ -136,49 +239,34 @@ export function App() {
 				</div>
 			</nav>
 
-			{/* current information div */}
-			<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
-				<CardHeader>
-					<CardTitle className="text-center text-xl">Väderprognos</CardTitle>
-					<CardDescription></CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col items-center text-center">
-					<img
-						src={RainIcon}
-						height="200"
-						width="200"
-						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining ? 'block' : 'hidden')}
-					/>
-					<img
-						src={CloudIcon}
-						height="200"
-						width="200"
-						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isCloudy ? 'block' : 'hidden')}
-					/>
-					<img
-						src={WindIcon}
-						height="200"
-						width="200"
-						className={(theme === 'dark' ? 'svgtowhite ' : '') + (isWindy ? 'block' : 'hidden')}
-					/>
-					<img
-						src={SunIcon}
-						height="200"
-						width="200"
-						className={
-							(theme === 'dark' ? 'svgtowhite ' : '') + (isRaining || isWindy || isCloudy ? 'hidden' : 'block')
-						}
-					/>
-					<p className="m-2">Nuvarande temperatur är {data.at(-1)?.temperature ?? 'Unknown'} °C</p>
-					<p className="m-2">
-						Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />(
-						{timeChange + ' ' + timeUnit} sedan){' '}
-						<span className="text-[#D0D080]">
-							({tempDistant}-{tempCurrent} °C)
-						</span>
-					</p>
-				</CardContent>
-			</Card>
+			<div className="flex flex-row justify-around">
+				{/* current weather div */}
+				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
+					<CardHeader>
+						<CardTitle className="text-center text-xl">Väderprognos</CardTitle>
+						<CardDescription className="text-center text-2xl text-red-600">
+							{data.at(-1)?.alarming ? 'VÄDER VARNING' : ''}
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col items-center text-center">
+						<WeatherIcon cloudy={isCloudy} raining={isRaining} windy={isWindy} />
+						<p className="m-2">Nuvarande temperatur är {data.at(-1)?.temperature ?? 'Unknown'} °C</p>
+						<p className="m-2">
+							Temperaturen har gått {tempChange < 0 ? 'ned' : 'upp'} med {Math.abs(tempChange)} °C <br />(
+							{timeChange + ' ' + timeUnit} sedan){' '}
+							<span className="text-[#D0D080]">
+								({tempDistant}-{tempCurrent} °C)
+							</span>
+						</p>
+					</CardContent>
+				</Card>
+				<Carousel>
+					<CarouselContent>
+						{...Array(5).map((i) => <Forecast data={forecastedData.at(i)} />)}
+						<Card>HII</Card>
+					</CarouselContent>
+				</Carousel>
+			</div>
 
 			{/* graphical div */}
 			<div className="flex w-screen flex-col items-center">

@@ -3,6 +3,8 @@ import index from './index.html';
 import { data } from './backend/arduino';
 import chalk from 'chalk';
 
+const production = process.env.NODE_ENV === 'production';
+
 const server = serve({
 	routes: {
 		// Serve index.html for all unmatched routes.
@@ -18,7 +20,8 @@ const server = serve({
 			return Response.json(JSON.parse(`[${splitted.join(',')}]`));
 		},
 	},
-	development: process.env.NODE_ENV !== 'production',
+	development: !production,
+	port: production ? 3000 : 3001,
 });
 
 console.log(chalk.green(`🚀 Server running at ${server.url}`));

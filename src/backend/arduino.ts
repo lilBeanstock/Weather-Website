@@ -62,14 +62,15 @@ const monitorProcess = spawn(monitorArguments, {
 });
 
 export interface Data {
-	temperature: number;
-	humidity: number;
+	alarming: boolean;
 	gas: number;
-	rain: number;
-	solar: number;
-	wind: number;
+	humidity: number;
 	initialTime: number;
 	logDate: string;
+	rain: number;
+	solar: number;
+	temperature: number;
+	wind: number;
 }
 
 export const data: Data[] = [];
@@ -113,14 +114,15 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 			// Fake data:
 			const initialTime = new Date('2025-05-02 13:20:00').getTime();
 			data.push({
+				alarming: Math.random() > 0.5,
 				gas: Math.floor(Math.random() * 100),
 				humidity: Math.floor(Math.random() * 100),
+				initialTime,
+				logDate,
 				rain: Math.floor(Math.random() * 100),
 				temperature: Math.floor(Math.random() * 100),
 				solar: Math.floor(Math.random() * 100),
 				wind: Math.floor(Math.random() * 100),
-				initialTime,
-				logDate,
 			});
 		}
 
