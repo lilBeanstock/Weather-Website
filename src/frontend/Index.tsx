@@ -24,9 +24,11 @@ type ForecastedDataObj = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
 interface ForecastedData extends ForecastedDataObj {}
 
 function forecastWeather(secondsIncrement: number, currData: Data[]): ForecastedData[] | null {
+	const forecasted: ForecastedDataObj[] = [];
+
 	let index = -currData.length;
-	if (index >= -3) {
-		return null;
+	if (index >= -2) {
+		return [];
 	} else if (index <= -15) {
 		index = -15;
 	}
@@ -54,11 +56,7 @@ function forecastWeather(secondsIncrement: number, currData: Data[]): Forecasted
 	const AvgTemp = Math.round(ChTemp + DisTemp) / 2;
 	const AvgHumidity = Math.round(ChHumidity + DisHumidity) / 2;
 
-	console.log(AvgWind, ChWind, DisWind, ChTimeChange, DisTimeChange);
-
 	// predict for the forecoming minutes
-	let forecasted: ForecastedDataObj[] = [];
-	// new Date(new Date().getTime() + secondsIncrement*1000);
 	for (let i = 1; i < 6; i++) {
 		// current + AvgChange * index
 		forecasted.push({
@@ -248,7 +246,7 @@ export function App() {
 				</div>
 			</nav>
 
-			<div className="my-8 flex flex-row justify-evenly">
+			<div className="my-8 flex flex-col items-center xl:flex-row xl:justify-evenly">
 				{/* current weather div */}
 				<Card className="m-3 w-fit border-[2px] border-solid border-[#202020]">
 					<CardHeader>
@@ -274,15 +272,19 @@ export function App() {
 					</CardContent>
 				</Card>
 				{/* weather forecast */}
-				<Carousel opts={{ align: 'start' }} className="w-full max-w-2xl">
-					<CarouselContent>
-						{[...(forecastedData.length > 0 ? forecastedData : []).slice(0, 5)].map((data, index) => (
-							<Forecast key={index} data={data} date={data.logDate} />
-						))}
-					</CarouselContent>
-					<CarouselPrevious />
-					<CarouselNext />
-				</Carousel>
+				{forecastedData.length > 0 ? (
+					<Carousel opts={{ align: 'start' }} className="w-full max-w-2xl">
+						<CarouselContent>
+							{[...forecastedData.slice(0, 5)].map((data, index) => (
+								<Forecast key={index} data={data} date={data.logDate} />
+							))}
+						</CarouselContent>
+						<CarouselPrevious />
+						<CarouselNext />
+					</Carousel>
+				) : (
+					<h1 className="text-2xl">Ingen väderprognos än...</h1>
+				)}
 			</div>
 
 			{/* graphical div */}
