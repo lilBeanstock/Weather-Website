@@ -9,7 +9,7 @@ The entrypoint for this project is `/src/index.ts`. Some files are auto-generate
 
 ## How to get started
 
-Firstly, make sure you have the Bun runtime installed.
+Firstly, make sure you have the Bun runtime installed as well as `arduino-cli`.
 Afterwards, install the dependencies required in this project:
 
 ```bash
