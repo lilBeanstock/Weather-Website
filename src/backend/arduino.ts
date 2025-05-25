@@ -15,16 +15,16 @@ const weatherFile = fileURLToPath(import.meta.resolve('./weather/weather.ino'));
 if (RUNNING_ARDUINO) {
 	console.log(chalk.green('Compiling the weather code...'));
 	const compileArguments = ['arduino-cli', 'compile', '--fqbn', 'arduino:avr:uno', weatherFile];
-	// Spawn a child process which runs the arguments above (which compiles the Arduino code).
+	// Spawn a child process which runs the arguments above (which compiles the Arduino code) in a terminal environment.
 	// stdio array: [stdin, stdout, stderr].
 	const compileProcess = spawnSync(compileArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
-	// Print the raw output of the compilation to the terminal.
+	// Print the raw output of the Arduino compilation to the terminal.
 	process.stdout.write(compileProcess.stdout.toString());
 	const stderr = compileProcess.stderr.toString();
 	process.stdout.write(stderr);
 
-	// Stop the process/code from running as we have hit an error.
+	// Stop the process/code from running if we have hit an error.
 	if (stderr.length > 0) {
 		console.error('Failed to compile the Arduino weather code!');
 		process.exit(1);
@@ -32,8 +32,7 @@ if (RUNNING_ARDUINO) {
 }
 
 if (RUNNING_ARDUINO) {
-	console.log(chalk.green('Uploading the weather code...'));
-	// const uploadArguments = ['arduino-cli', 'upload', '-p', '/dev/ttyACM0', '--fqbn', 'arduino:avr:uno', weatherFile];
+	console.log(chalk.green('Uploading the weather code to the Arduino...'));
 	const uploadArguments = ['arduino-cli', 'upload', '-p', 'COM6', '--fqbn', 'arduino:avr:uno', weatherFile];
 	const uploadProcess = spawnSync(uploadArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -47,6 +46,8 @@ if (RUNNING_ARDUINO) {
 	}
 }
 
+// Terminal command to read the serial output of the Arduino.
+// If no Arduino is present, simulate the incoming serial output.
 const monitorArguments = RUNNING_ARDUINO
 	? ['arduino-cli', 'monitor', '-p', 'COM6', '--fqbn', 'arduino:avr:uno']
 	: [
@@ -54,6 +55,8 @@ const monitorArguments = RUNNING_ARDUINO
 			'-Command',
 			'While ($true) { Write-Host "Simulating incoming text from the Arduino Uno every 2 seconds."; Start-Sleep -Seconds 2 }',
 		];
+
+// Spawn the process which we will continuously monitor and read.
 const monitorProcess = spawn(monitorArguments, {
 	stdio: ['inherit', 'pipe', 'pipe'],
 	onExit({ pid }, exitCode, signalCode, error) {
@@ -61,6 +64,7 @@ const monitorProcess = spawn(monitorArguments, {
 	},
 });
 
+// The object type of the data sent by the Arduino in the weather code.
 export interface Data {
 	alarming: boolean;
 	gas: number;
@@ -75,6 +79,9 @@ export interface Data {
 
 export const data: Data[] = [];
 
+// Return only each line which has been separated by a new line.
+// This makes it easier to parse the JSON object provided by the Arduino,
+// as opposed to possible invalid JSON per new line.
 async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 	const decoder = new TextDecoder();
 	let leftover = '';
@@ -99,13 +106,18 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 (async () => {
 	// https://stackoverflow.com/a/76296855
 	for await (const line of streamLines(monitorProcess.stdout)) {
+		// The current date which we will store along the weather data.
 		const logDate = new Date().toUTCString();
+
 		if (RUNNING_ARDUINO) {
 			try {
-				let incomingData = JSON.parse(line) as Data;
+				const incomingData = JSON.parse(line) as Data;
+				// Add the current date to the parsed weather data.
 				incomingData.logDate = logDate;
 
+				// Add the parsed data to our data array.
 				data.push(incomingData);
+				// Add the parsed data to the data file which includes every data point stored.
 				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
 			} catch {
 				console.error('JSON parsing error!');
@@ -126,14 +138,19 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 			});
 		}
 
+		// Only return 30 total elements of the data array to the user on the webpage.
+		// With too much data, the graphs will become unreadable.
 		if (data.length > 30) {
+			// Only get rid of the oldest weather data.
 			data.shift();
 		}
 
+		// Print out the latest data to the terminal.
 		console.log(JSON.stringify(data.at(-1)));
 	}
 })();
 
+// Read the error output in case we encouter any. Stop the server if it happens.
 (async () => {
 	// https://bun.sh/guides/process/spawn-stderr
 	const error = await readableStreamToText(monitorProcess.stderr);

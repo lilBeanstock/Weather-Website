@@ -1,3 +1,4 @@
+// Import the components and libraries we need to display the data.
 import { useQuery } from '@tanstack/react-query';
 import type { Data } from '@/backend/arduino';
 import RainIcon from './icons/rain.svg';
@@ -20,13 +21,16 @@ import { useTheme } from '@/components/ThemeProvider';
 import type { PropsWithChildren } from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
-type ForecastedDataObj = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
-interface ForecastedData extends ForecastedDataObj {}
+// Forecast data type for the weather forecast in the next several minutes.
+// Do not include data points we do not want such as the ones below.
+type ForecastedData = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
 
-function forecastWeather(secondsIncrement: number, currData: Data[]): ForecastedData[] | null {
-	const forecasted: ForecastedDataObj[] = [];
+// This is where we return the weather forecast data we believe will be in the next few minutes.
+function forecastWeather(secondsIncrement: number, currData: Data[]): ForecastedData[] {
+	const forecasted: ForecastedData[] = [];
 
 	let index = -currData.length;
+	// Return nothing if we have less than 3 data points.
 	if (index >= -2) {
 		return [];
 	} else if (index <= -15) {
@@ -56,7 +60,7 @@ function forecastWeather(secondsIncrement: number, currData: Data[]): Forecasted
 	const AvgTemp = Math.round(ChTemp + DisTemp) / 2;
 	const AvgHumidity = Math.round(ChHumidity + DisHumidity) / 2;
 
-	// predict for the forecoming minutes
+	// predict for the forecoming 5 minutes.
 	for (let i = 1; i < 6; i++) {
 		// current + AvgChange * index
 		forecasted.push({
@@ -72,8 +76,11 @@ function forecastWeather(secondsIncrement: number, currData: Data[]): Forecasted
 	return forecasted;
 }
 
+// This is where the webpage actually gets rendered.
 export function App() {
+	// Utility to toggle between light and dark theme.
 	const { setTheme, theme } = useTheme();
+	// We use TanStack Query to regularly refetch the incoming weather data.
 	const { isPending, error, data } = useQuery({
 		queryKey: ['arduino-data'],
 		queryFn: () => fetch(`${window.location.origin}/api/arduino-data`).then((res) => res.json()) as Promise<Data[]>,
@@ -97,6 +104,7 @@ export function App() {
 
 	const tempChange = tempCurrent - tempDistant;
 
+	// Boolean functions to determine if the weather conditions.
 	function raining(rain: Data['rain']) {
 		return data.length > 0 && rain > 30;
 	}
@@ -116,6 +124,8 @@ export function App() {
 	const timeChange = (after - before) / 1000;
 	const timeUnit = 'sekund(er)';
 
+	// The SVG image displayed if it's e.g. raining or sunny.
+	// We can reuse this function in the current weather and forecasted weather.
 	function WeatherIcon({ cloudy, raining, windy }: { cloudy: boolean; raining: boolean; windy: boolean }) {
 		return (
 			<>
@@ -147,15 +157,17 @@ export function App() {
 		);
 	}
 
+	// Each individual card of the weather forecast carousel.
 	function Forecast({
 		data: { humidity, rain, solar, wind, temperature },
 		date,
 	}: {
-		data: ForecastedDataObj;
+		data: ForecastedData;
 		date: Data['logDate'];
 	}) {
 		const dateObj = new Date(date);
 		const diff = Math.round((dateObj.getTime() - new Date().getTime()) / (1000 * 60));
+		// Displays in how many minutes instead of just the time or date.
 		const formattedDate = new Intl.RelativeTimeFormat('sv-SE', { numeric: 'auto' }).format(diff, 'minute');
 
 		return (
@@ -177,6 +189,7 @@ export function App() {
 		);
 	}
 
+	// The colours can be found in /styles/globals.css.
 	const chartConfig = {
 		rain: {
 			label: 'Rain [%]',
@@ -204,6 +217,7 @@ export function App() {
 		},
 	} satisfies ChartConfig;
 
+	// Reusable component to create a chart for a specified weather data point.
 	function ChartInformation({ children }: PropsWithChildren) {
 		return (
 			<ChartContainer config={chartConfig} className="h-64 w-64 lg:w-96">
@@ -271,10 +285,11 @@ export function App() {
 						</p>
 					</CardContent>
 				</Card>
-				{/* weather forecast */}
+				{/* weather forecast. If no forecasted data, show no weather forecast. */}
 				{forecastedData.length > 0 ? (
 					<Carousel opts={{ align: 'start' }} className="w-full max-w-2xl">
 						<CarouselContent>
+							{/* Only show up to the next 5 minutes. */}
 							{[...forecastedData.slice(0, 5)].map((data, index) => (
 								<Forecast key={index} data={data} date={data.logDate} />
 							))}
@@ -287,7 +302,7 @@ export function App() {
 				)}
 			</div>
 
-			{/* graphical div */}
+			{/* graphical div (charts) */}
 			<div className="flex w-screen flex-col items-center">
 				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for rain */}

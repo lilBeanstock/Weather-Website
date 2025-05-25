@@ -2,18 +2,19 @@
 #include <DHT11.h>
 #include <TimeLib.h>
 
+// Define our temperature and humidity sensor as the object and connected to digital pin 4.
 DHT11 dht11(4);
 #define gasSensor A0
-// Rain sensor without water on it has a value of ~682.
-// With a little bit of water: 336.
 // Analog pin 1 seems to be a bit inaccurate? Changed to 5.
 #define rainSensor A5
 #define solarSensor A2
 #define windSensor A3
 #define buzzer 3
 
+// The date and time when the weather station started storing data.
 time_t initialTime;
 
+// Converts the analog solar sensor value to a voltage.
 double readSolarSensor() {
 	int raw = analogRead(solarSensor);
 	
@@ -28,7 +29,7 @@ double readSolarSensor() {
 }
 
 double readWindSensor() {
-	// Regression model to convert the analog value to m/s.
+	// Linear regression model to convert the analog value to a velocity (meters per second).
 	int raw = analogRead(windSensor);
 	double slope = (4.47 - 0) / (420 - 150);
 	double yIntercept = -2.48333333333333333;
@@ -38,6 +39,7 @@ double readWindSensor() {
 }
 
 void setup() {
+	// Define what components send data and which ones we send data to.
   pinMode(gasSensor, INPUT);
   pinMode(rainSensor, INPUT);
   pinMode(solarSensor, INPUT);
@@ -61,25 +63,28 @@ void setup() {
 }
 
 void loop() {
-  String jsonOutput = "";
+	// We return the JSON at the end as a serial output.
+  String jsonOutput = "{";
   
   int temperature = 0;
   int humidity = 0;
   int result = dht11.readTemperatureHumidity(temperature, humidity);
-	// The temperature is higher than it should be.
+	// The temperature is higher than it should be so we subtract a few degrees Celsius.
 	temperature -= 4;
 
-  jsonOutput += "{";
-
+	// Add the values to the JSON object/output.
   jsonOutput += "\"temperature\": ";
+	// Return NaN (not a number) if the sensor did not return valid data (e.g. failed).
   jsonOutput += result == 0 ? String(temperature) : "\"NaN\"";
   jsonOutput += ", \"humidity\": ";
   jsonOutput += result == 0 ? String(humidity) : "\"NaN\"";
 
+	// Value range of 0 to 1023 but we want a percentage of 0% to 100%.
 	int gas = map(analogRead(gasSensor), 0, 1023, 0, 100);
   jsonOutput += ", \"gas\": ";
   jsonOutput += gas;
 
+	// Same as above but the opposite way (100% to 0%).
 	int rain = map(analogRead(rainSensor), 0, 1023, 100, 0);
   jsonOutput += ", \"rain\": ";
   jsonOutput += rain;
@@ -92,14 +97,14 @@ void loop() {
 	jsonOutput += ", \"wind\": ";
 	jsonOutput += wind;
 
+	// Add the time of first storage to the output.
   jsonOutput += ", \"initialTime\": ";
   jsonOutput += initialTime;
 
 	// No solar value check because the solar panel is too sensitive to sunlight (maxes out).
+	// The alarm should buzz if any component value is deemed too high/unsafe.
 	bool shouldBuzz = (temperature >= 30) || (humidity >= 40) || (gas >= 75) || (rain >= 25) || (wind >= 4);
 	shouldBuzz ? tone(buzzer, 1000) : noTone(buzzer);
-	// Temporary LED.
-	// digitalWrite(buzzer, shouldBuzz);
 
 	jsonOutput += ", \"alarming\": ";
 	jsonOutput += String(shouldBuzz);
@@ -108,6 +113,6 @@ void loop() {
 
   Serial.println(jsonOutput);
 
-	
+	// Wait 5 seconds before reading the values again.
   delay(5 * 1000);
 }
