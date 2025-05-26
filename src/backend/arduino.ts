@@ -15,7 +15,8 @@ const weatherFile = fileURLToPath(import.meta.resolve('./weather/weather.ino'));
 if (RUNNING_ARDUINO) {
 	console.log(chalk.green('Compiling the weather code...'));
 	const compileArguments = ['arduino-cli', 'compile', '--fqbn', 'arduino:avr:uno', weatherFile];
-	// Spawn a child process which runs the arguments above (which compiles the Arduino code) in a terminal environment.
+	// Spawn a synchronous child process which runs the arguments above (which compiles the Arduino code) in a terminal environment.
+	// Synchronous because we want to wait for the program to finish compiling before continuing.
 	// stdio array: [stdin, stdout, stderr].
 	const compileProcess = spawnSync(compileArguments, { stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -24,7 +25,7 @@ if (RUNNING_ARDUINO) {
 	const stderr = compileProcess.stderr.toString();
 	process.stdout.write(stderr);
 
-	// Stop the process/code from running if we have hit an error.
+	// Stop the process/code from running if we hit an error.
 	if (stderr.length > 0) {
 		console.error('Failed to compile the Arduino weather code!');
 		process.exit(1);
@@ -56,7 +57,7 @@ const monitorArguments = RUNNING_ARDUINO
 			'While ($true) { Write-Host "Simulating incoming text from the Arduino Uno every 2 seconds."; Start-Sleep -Seconds 2 }',
 		];
 
-// Spawn the process which we will continuously monitor and read.
+// Spawn the child process which we will continuously monitor and read the JSON object data.
 const monitorProcess = spawn(monitorArguments, {
 	stdio: ['inherit', 'pipe', 'pipe'],
 	onExit({ pid }, exitCode, signalCode, error) {
@@ -79,7 +80,7 @@ export interface Data {
 
 export const data: Data[] = [];
 
-// Return only each line which has been separated by a new line.
+// Return only each new line as opposed to possibly multiple lines.
 // This makes it easier to parse the JSON object provided by the Arduino,
 // as opposed to possible invalid JSON per new line.
 async function* streamLines(stream: AsyncIterable<Uint8Array>) {
@@ -92,6 +93,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 		leftover = lines.pop() ?? '';
 
 		for (const line of lines) {
+			// Return each line to the function reading the stream chunks (like monitorProcess).
 			yield line;
 		}
 	}
@@ -101,7 +103,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 	}
 }
 
-// This anonymous async function runs the for await loop in its own async task
+// This anonymous async function runs the `for await` loop in its own async task
 // so that it does not block the rest of the script below it.
 (async () => {
 	// https://stackoverflow.com/a/76296855
@@ -110,6 +112,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 		const logDate = new Date().toUTCString();
 
 		if (RUNNING_ARDUINO) {
+			// We are dealing with real data, which comes from the Arduino.
 			try {
 				const incomingData = JSON.parse(line) as Data;
 				// Add the current date to the parsed weather data.
@@ -120,7 +123,7 @@ async function* streamLines(stream: AsyncIterable<Uint8Array>) {
 				// Add the parsed data to the data file which includes every data point stored.
 				appendFile(fileURLToPath(import.meta.resolve('./data.txt')), `${JSON.stringify(incomingData)}\n`);
 			} catch {
-				console.error('JSON parsing error!');
+				console.error('JSON parsing or saving error!');
 			}
 		} else {
 			// Fake data:

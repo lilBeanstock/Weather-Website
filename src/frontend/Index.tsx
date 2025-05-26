@@ -1,10 +1,6 @@
 // Import the components and libraries we need to display the data.
 import { useQuery } from '@tanstack/react-query';
 import type { Data } from '@/backend/arduino';
-import RainIcon from './icons/rain.svg';
-import CloudIcon from './icons/cloudy.svg';
-import WindIcon from './icons/windy.svg';
-import SunIcon from './icons/sunny.svg';
 import { Download } from 'lucide-react';
 import { Line } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import ChartInformation from '@/components/ChartInformation';
+import WeatherIcon from '@/components/WeatherIcon';
 
 // Forecast data type for the weather forecast in the next several minutes.
 // Do not include data points we do not want such as the ones below.
 type ForecastedData = Omit<Data, 'alarming' | 'initialTime' | 'gas'>;
 
-// This is where we return the weather forecast data we believe will be in the next few minutes.
+// This is where we return the predicted weather forecast in the next few minutes.
 function forecastWeather(secondsIncrement: number, currData: Data[]): ForecastedData[] {
 	const forecasted: ForecastedData[] = [];
 
@@ -68,15 +65,15 @@ function forecastWeather(secondsIncrement: number, currData: Data[]): Forecasted
 	return forecasted;
 }
 
-// This is where the webpage actually gets rendered.
-export function App() {
+// Our app component where all of the main graphical interface is.
+export default function App() {
 	// Utility to toggle between light and dark theme.
 	const { setTheme, theme } = useTheme();
 	// We use TanStack Query to regularly refetch the incoming weather data.
 	const { isPending, error, data } = useQuery({
 		queryKey: ['arduino-data'],
 		queryFn: () => fetch(`${window.location.origin}/api/arduino-data`).then((res) => res.json()) as Promise<Data[]>,
-		// Retrieve the Arduino data every 5 seconds.
+		// Retrieve the Arduino data array every 5 seconds.
 		refetchInterval: 5 * 1000,
 	});
 
@@ -86,6 +83,7 @@ export function App() {
 
 	// evaluate temperature and changes in temp
 	const tempCurrent = data.at(-1)?.temperature ?? 21;
+	// The temperature before.
 	let tempDistant = 0;
 
 	if (data.length < 5) {
@@ -94,6 +92,7 @@ export function App() {
 		tempDistant = data.at(-5).temperature;
 	}
 
+	// The temperature difference/range.
 	const tempChange = tempCurrent - tempDistant;
 
 	// Boolean functions to determine the weather conditions.
@@ -109,45 +108,14 @@ export function App() {
 		return data.length > 0 && !raining(rain) && wind > 400;
 	}
 
+	// Our predicted weather forecast.
 	const forecastedData = forecastWeather(60, data);
 
 	const before = new Date(data.at(-2)?.logDate).getTime();
 	const after = new Date(data.at(-1)?.logDate).getTime();
+	// Time change between the last and penultimate data point.
 	const timeChange = (after - before) / 1000;
 	const timeUnit = 'sekund(er)';
-
-	// The SVG image displayed if it's e.g. raining or sunny.
-	// We can reuse this function in the current weather and forecasted weather.
-	function WeatherIcon({ cloudy, raining, windy }: { cloudy: boolean; raining: boolean; windy: boolean }) {
-		return (
-			<>
-				<img
-					src={RainIcon}
-					height="200"
-					width="200"
-					className={(theme === 'dark' ? 'svgtowhite ' : '') + (raining ? 'block' : 'hidden')}
-				/>
-				<img
-					src={CloudIcon}
-					height="200"
-					width="200"
-					className={(theme === 'dark' ? 'svgtowhite ' : '') + (cloudy ? 'block' : 'hidden')}
-				/>
-				<img
-					src={WindIcon}
-					height="200"
-					width="200"
-					className={(theme === 'dark' ? 'svgtowhite ' : '') + (windy ? 'block' : 'hidden')}
-				/>
-				<img
-					src={SunIcon}
-					height="200"
-					width="200"
-					className={(theme === 'dark' ? 'svgtowhite ' : '') + (raining || windy || cloudy ? 'hidden' : 'block')}
-				/>
-			</>
-		);
-	}
 
 	// Each individual card of the weather forecast carousel.
 	function Forecast({
@@ -158,6 +126,7 @@ export function App() {
 		date: Data['logDate'];
 	}) {
 		const dateObj = new Date(date);
+		// In how many minutes.
 		const diff = Math.round((dateObj.getTime() - new Date().getTime()) / (1000 * 60));
 		// Displays in how many minutes instead of just the time or date.
 		const formattedDate = new Intl.RelativeTimeFormat('sv-SE', { numeric: 'auto' }).format(diff, 'minute');
@@ -181,6 +150,7 @@ export function App() {
 		);
 	}
 
+	// The UI shown to the user.
 	return (
 		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col overflow-hidden">
 			{/* header div */}
@@ -203,6 +173,7 @@ export function App() {
 					<CardHeader>
 						<CardTitle className="text-center text-xl">Väderprognos</CardTitle>
 						<CardDescription className="text-center text-2xl text-red-600">
+							{/* Display a weather warning if there is one according to the weather station. */}
 							{data.at(-1)?.alarming ? 'VÄDER VARNING' : ''}
 						</CardDescription>
 					</CardHeader>
@@ -310,5 +281,3 @@ export function App() {
 		</main>
 	);
 }
-
-export default App;

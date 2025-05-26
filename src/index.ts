@@ -10,6 +10,7 @@ import chalk from 'chalk';
 // Used to either provide the real data incoming from the weather station or fake data generated.
 const production = process.env.NODE_ENV === 'production';
 
+// Initialise the web server with the given route handlers and options.
 const server = serve({
 	routes: {
 		// Serve index.html for all unmatched routes.
@@ -20,6 +21,7 @@ const server = serve({
 		},
 		// Return all our weather station data saved.
 		'/api/arduino-data-all': async () => {
+			// We need to parse the line by line JSON objects to a JSON array.
 			const fileContent = await file(fileURLToPath(import.meta.resolve('./backend/data.txt'))).text();
 			const splitted = fileContent.split('\n');
 			// Remove the last line from the array as it's only a break line, not a JSON object.

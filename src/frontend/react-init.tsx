@@ -10,11 +10,13 @@ import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
 // The library we use to fetch our data provided by the server/Arduino.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { App } from './Index';
+import App from './Index';
 // Ability to switch between light and dark mode.
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 const queryClient = new QueryClient();
+// The React app we serve to the user.
+// This is where the webpage actually gets rendered.
 const app = (
 	<StrictMode>
 		<ThemeProvider defaultTheme="dark" storageKey="bun-ui-theme">
