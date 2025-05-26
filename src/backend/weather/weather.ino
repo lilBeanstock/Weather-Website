@@ -63,7 +63,7 @@ void setup() {
 }
 
 void loop() {
-	// We return the JSON at the end as a serial output.
+	// We return the JSON object at the end as a serial output.
   String jsonOutput = "{";
   
   int temperature = 0;
@@ -103,7 +103,7 @@ void loop() {
 
 	// No solar value check because the solar panel is too sensitive to sunlight (maxes out).
 	// The alarm should buzz if any component value is deemed too high/unsafe.
-	bool shouldBuzz = (temperature >= 30) || (humidity >= 40) || (gas >= 75) || (rain >= 25) || (wind >= 4);
+	bool shouldBuzz = (temperature >= 30) || (humidity >= 40) || (gas >= 80) || (rain >= 25) || (wind >= 4);
 	shouldBuzz ? tone(buzzer, 1000) : noTone(buzzer);
 
 	jsonOutput += ", \"alarming\": ";
@@ -111,6 +111,7 @@ void loop() {
 
   jsonOutput += "}";
 
+	// Print the JSON object to the serial monitor so we can read it through our web server.
   Serial.println(jsonOutput);
 
 	// Wait 5 seconds before reading the values again.

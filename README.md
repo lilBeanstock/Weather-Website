@@ -10,6 +10,7 @@ The entrypoint for this project is `/src/index.ts`. Some files are auto-generate
 ## How to get started
 
 Firstly, make sure you have the Bun runtime installed as well as `arduino-cli`.
+Also install the libraries that the Arduino requires in `/src/backend/weather/weather.ino` in the Arduino IDE.
 Afterwards, install the dependencies required in this project:
 
 ```bash

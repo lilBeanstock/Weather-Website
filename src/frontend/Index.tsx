@@ -6,20 +6,12 @@ import CloudIcon from './icons/cloudy.svg';
 import WindIcon from './icons/windy.svg';
 import SunIcon from './icons/sunny.svg';
 import { Download } from 'lucide-react';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import {
-	type ChartConfig,
-	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
-	ChartTooltip,
-	ChartTooltipContent,
-} from '@/components/ui/chart';
+import { Line } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
-import type { PropsWithChildren } from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import ChartInformation from '@/components/ChartInformation';
 
 // Forecast data type for the weather forecast in the next several minutes.
 // Do not include data points we do not want such as the ones below.
@@ -104,7 +96,7 @@ export function App() {
 
 	const tempChange = tempCurrent - tempDistant;
 
-	// Boolean functions to determine if the weather conditions.
+	// Boolean functions to determine the weather conditions.
 	function raining(rain: Data['rain']) {
 		return data.length > 0 && rain > 30;
 	}
@@ -189,61 +181,6 @@ export function App() {
 		);
 	}
 
-	// The colours can be found in /styles/globals.css.
-	const chartConfig = {
-		rain: {
-			label: 'Rain [%]',
-			color: 'var(--chart-1)',
-		},
-		humidity: {
-			label: 'Humidity [%]',
-			color: 'var(--chart-2)',
-		},
-		gas: {
-			label: 'Hazardous Gases [%]',
-			color: 'var(--chart-3)',
-		},
-		temperature: {
-			label: 'Temperature [°C]',
-			color: 'var(--chart-4)',
-		},
-		solar: {
-			label: 'Solar Power [V]',
-			color: 'var(--chart-5)',
-		},
-		wind: {
-			label: 'Wind [m/s]',
-			color: 'var(--chart-2)',
-		},
-	} satisfies ChartConfig;
-
-	// Reusable component to create a chart for a specified weather data point.
-	function ChartInformation({ children }: PropsWithChildren) {
-		return (
-			<ChartContainer config={chartConfig} className="h-64 w-64 lg:w-96">
-				<LineChart accessibilityLayer data={data}>
-					<CartesianGrid vertical={false} />
-					<XAxis
-						dataKey="logDate"
-						tickLine={false}
-						axisLine={false}
-						tickMargin={8}
-						tickFormatter={(value) =>
-							new Date(value).toLocaleDateString('en-GB', {
-								month: 'short',
-								day: 'numeric',
-							})
-						}
-					/>
-					<YAxis />
-					<ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-					<ChartLegend content={<ChartLegendContent />} />
-					{children}
-				</LineChart>
-			</ChartContainer>
-		);
-	}
-
 	return (
 		<main className="absolute top-0 left-0 flex min-h-screen min-w-screen flex-col overflow-hidden">
 			{/* header div */}
@@ -306,7 +243,7 @@ export function App() {
 			<div className="flex w-screen flex-col items-center">
 				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for rain */}
-					<ChartInformation>
+					<ChartInformation data={data}>
 						<Line
 							dataKey="rain"
 							type="monotone"
@@ -318,7 +255,7 @@ export function App() {
 					</ChartInformation>
 
 					{/* for temperature */}
-					<ChartInformation>
+					<ChartInformation data={data}>
 						<Line
 							dataKey="temperature"
 							type="monotone"
@@ -331,7 +268,7 @@ export function App() {
 				</div>
 				<div className="flex h-72 w-2/3 place-content-between">
 					{/* for gas and humidity */}
-					<ChartInformation>
+					<ChartInformation data={data}>
 						<Line
 							dataKey="gas"
 							type="monotone"
@@ -350,7 +287,7 @@ export function App() {
 						/>
 					</ChartInformation>
 					{/* for solar voltage and wind velocity, 600 = 2V, 632 = 2.42V 200 = 0.19V */}
-					<ChartInformation>
+					<ChartInformation data={data}>
 						<Line
 							dataKey="solar"
 							type="monotone"
